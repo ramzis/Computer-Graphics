@@ -5,6 +5,7 @@
 #include "TestModelH.h"
 #include <stdint.h>
 #include <math.h>  //only need fabs
+#include "Camera.h"
 
 using namespace std;
 using glm::vec3;
@@ -13,8 +14,8 @@ using glm::vec4;
 using glm::mat4;
 // using glm::distance;
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 256
+#define SCREEN_WIDTH 300
+#define SCREEN_HEIGHT 300
 #define FULLSCREEN_MODE false
 
 struct Intersection {
@@ -38,10 +39,13 @@ float distance(vec4& i, vec4& j);
 int main(int argc, char* argv[]) {
   screen* screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
+  /* Camera init */
+  Camera camera = Camera();
+
   vector<Triangle> triangles;
   LoadTestModel(triangles);
-  // vec4 cameraOrigin;
-  float f = screen->height / 8;
+  
+  float f = screen->height;// / 2;
 
   while (NoQuitMessageSDL()) {
     Update();
@@ -70,7 +74,7 @@ void DrawRoom(screen* screen, vector<Triangle>& triangles, int focalLength) {
       d = vec4(i - screen->width / 2, j - screen->width / 2, focalLength, 1);
       // check if ray intersects
       intersects =
-          ClosestIntersection(vec4(0, 0, 0, 1), d, triangles, intersection);
+          ClosestIntersection(vec4(0, 0, -2, 1), d, triangles, intersection);
       if (intersects) {
         col = triangles[intersection.triangleIndex].color;
         PutPixelSDL(screen, i, j, col);
@@ -109,7 +113,9 @@ void Update() {
 bool ClosestIntersection(  // v0+ue1+ve2=s+td
     vec4 start, vec4 dir, const vector<Triangle>& triangles,
     Intersection& closestIntersection) {
+
   bool intersects = false;
+
   closestIntersection.position = vec4(1.1, 1.1, 1.1, 1);
   closestIntersection.distance = 100.0;
   for (int i = 0; i < triangles.size(); i++) {
@@ -120,25 +126,24 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
     vec4 v2 = triangle.v2;
 
     // gen the plane this triangle is in and vector from start to triangle
-    vec3 e1 = vec3(v1.x - v0.x, v1.y - v0.y,
-                   v1.z - v0.z);  // basis vector of triangle
-    vec3 e2 = vec3(v2.x - v0.x, v2.y - v0.y,
-                   v2.z - v0.z);  // basis vector of triangle
+
+    // basis vectors of the triangle
+    vec3 e1 = vec3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
+    vec3 e2 = vec3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
     // vector from start to corner of triangle
     vec3 b = vec3(start.x - v0.x, start.y - v0.y, start.z - v0.z);
 
-    // mat3 A( (float)-1 * (vec3)dir, e1, e2);
     mat3 A(-(vec3)dir, e1, e2);
-    vec3 x = glm::inverse(A) *
-             b;  // x is the intersection point of the plane and ray
-    // x=(t,u,v)
+    vec3 x = glm::inverse(A) * b;  // x is the intersection point of the plane and ray
 
     // check intersection is inside triangle boundaries
     bool seven = x.y > 0;
     bool eight = x.z > 0;
     bool nine = x.y + x.z < 1;
     bool eleven = x.x >= 0;
+
     if (seven && eight && nine && eleven) {
+
       intersects = true;
 
       if (x.x < closestIntersection.distance) {
@@ -148,8 +153,7 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
       }
     }
   }
-}
-return intersects;
+  return intersects;
 }
 
 void buildCameraRay(int i, int j, vec4& start, vec4& dir) {

@@ -137,7 +137,7 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	H = vec4(314,330,456,1);
 
 	// Front
-	/*
+
 	triangles.push_back( Triangle(E,B,A,blue) );
 	triangles.push_back( Triangle(E,F,B,blue) );
 
@@ -156,7 +156,7 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	// TOP
 	triangles.push_back( Triangle(G,F,E,blue) );
 	triangles.push_back( Triangle(G,H,F,blue) );
-*/
+
 
 	// ----------------------------------------------
 	// Scale to the volume [-1,1]^3
