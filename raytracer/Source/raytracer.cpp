@@ -1,102 +1,62 @@
-#include <iostream>
-#include <glm/glm.hpp>
-#include <SDL.h>
-#include "SDLauxiliary.h"
-#include "TestModelH.h"
-#include <stdint.h>
-#include <math.h>  //only need fabs
-#include "Camera.h"
+#include "Raytracer.h"
 
-using namespace std;
-using glm::vec3;
-using glm::mat3;
-using glm::vec4;
-using glm::mat4;
-// using glm::distance;
+//using namespace std;
+using std::vector;
 
-#define SCREEN_WIDTH 300
-#define SCREEN_HEIGHT 300
+#define SCREEN_WIDTH 1080
+#define SCREEN_HEIGHT 720
 #define FULLSCREEN_MODE false
 
-struct Intersection {
-  vec4 position;
-  float distance;
-  int triangleIndex;
-};
-
-/* ----------------------------------------------------------------------------*/
-/* FUNCTIONS */
-
-void Update();
-void Draw(screen* screen);
-void DrawRoom(screen* screen, vector<Triangle>& triangles, int focalLength);
-bool ClosestIntersection(vec4 start, vec4 dir,
-                         const vector<Triangle>& triangles,
-                         Intersection& closestIntersection);
-void buildCameraRay(int i, int j, vec4& start, vec4& dir);
-float distance(vec4& i, vec4& j);
-
+////////////////////////////////////////////////////////////////////////////////
+//
+// The main function initializes buffers and starts the engine loop.
+//
+////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[]) {
+
+  /* Screen buffer init */
   screen* screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   /* Camera init */
+  // TODO move this inside the engine loop or similar.
   Camera camera = Camera();
+  float f = screen->height;
 
+  /* Model data init */
   vector<Triangle> triangles;
   LoadTestModel(triangles);
-  
-  float f = screen->height;// / 2;
 
+  /* The engine loop */
   while (NoQuitMessageSDL()) {
+
+    /* Initializes variables */
+    // TODO Start();
+
+    /* Updates variables every frame */
     Update();
-    // Draw(screen);
-    DrawRoom(screen, triangles, f);
+
+    /* Clears the screen buffer */
+    memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
+
+    /* Updates the screen buffer a.k.a renders */
+    DrawRoom(screen, camera, triangles, f);
+
+    /* Sends the screen buffer for drawing */
     SDL_Renderframe(screen);
   }
 
   SDL_SaveImage(screen, "screenshot.bmp");
 
   KillSDL(screen);
+
   return 0;
 }
 
-void DrawRoom(screen* screen, vector<Triangle>& triangles, int focalLength) {
-  /* Clear buffer */
-  memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
-  bool intersects = false;
-  Intersection intersection;
-  vec3 col;
-  vec4 d;
-
-  for (int i = 0; i < screen->width; i++) {
-    for (int j = 0; j < screen->height; j++) {
-      // compute ray direction
-      d = vec4(i - screen->width / 2, j - screen->width / 2, focalLength, 1);
-      // check if ray intersects
-      intersects =
-          ClosestIntersection(vec4(0, 0, -2, 1), d, triangles, intersection);
-      if (intersects) {
-        col = triangles[intersection.triangleIndex].color;
-        PutPixelSDL(screen, i, j, col);
-      }
-    }
-  }
-}
-
-/*Place your drawing here*/
-void Draw(screen* screen) {
-  /* Clear buffer */
-  memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
-
-  vec3 colour(1.0, 0.0, 0.0);
-  for (int i = 0; i < 1000; i++) {
-    uint32_t x = rand() % screen->width;
-    uint32_t y = rand() % screen->height;
-    PutPixelSDL(screen, x, y, colour);
-  }
-}
-
-/*Place updates of parameters here*/
+////////////////////////////////////////////////////////////////////////////////
+//
+// Updates variable values every frame.
+//
+////////////////////////////////////////////////////////////////////////////////
 void Update() {
   static int t = SDL_GetTicks();
   /* Compute frame time */
@@ -108,6 +68,64 @@ void Update() {
   /* Update variables*/
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// Draws the frame by raycasting against objects in the scene.
+//
+////////////////////////////////////////////////////////////////////////////////
+// TODO Rename to Raycast or Render etc., and remake logic accordingly.
+// Should be generalised for all rendering purposes.
+
+void DrawRoom(
+  screen* screen,
+  Camera &camera,
+  std::vector<Triangle>& triangles,
+  int focalLength) {
+
+  bool intersects = false;
+
+  Intersection intersection;
+
+  vec3 colour;
+  vec4 d;
+
+  for (int i = 0; i < screen->width; i++) {
+    for (int j = 0; j < screen->height; j++) {
+
+      /* Computes ray direction */
+      d = vec4(i - screen->width / 2, j - screen->width / 2, focalLength, 1);
+
+      /* Checks if ray intersects */
+      intersects = ClosestIntersection(vec4(0, 0, -2, 1),
+                                       d,
+                                       triangles,
+                                       intersection);
+
+      /* If intersection occurs, draw a pixel */
+      if (intersects) {
+        colour = triangles[intersection.triangleIndex].color;
+        PutPixelSDL(screen, i, j, colour);
+      }
+
+    }
+  }
+}
+
+
+/*
+void Draw(screen* screen) {
+
+  memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
+
+  vec3 colour(1.0, 0.0, 0.0);
+  for (int i = 0; i < 1000; i++) {
+    uint32_t x = rand() % screen->width;
+    uint32_t y = rand() % screen->height;
+    PutPixelSDL(screen, x, y, colour);
+  }
+}
+*/
+
 //@param start: it's the starting poitn of the ray vector
 //@param dir: the direction the ray vector is travelling
 bool ClosestIntersection(  // v0+ue1+ve2=s+td
@@ -118,7 +136,7 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
 
   closestIntersection.position = vec4(1.1, 1.1, 1.1, 1);
   closestIntersection.distance = 100.0;
-  for (int i = 0; i < triangles.size(); i++) {
+  for (uint i = 0; i < triangles.size(); i++) {
     Triangle triangle = triangles[i];
     // get points of triangle
     vec4 v0 = triangle.v0;

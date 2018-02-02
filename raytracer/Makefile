@@ -10,9 +10,10 @@ B_DIR=Build
 EXEC=$(B_DIR)/$(FILE)
 
 # default build settings
-CC_OPTS=-c -pipe -Wall -Wno-switch -ggdb -g3 -o3
+CC_OPTS=-c -pipe -Wall -Wno-switch -ggdb -g3 -O3
 LN_OPTS=
 CC=g++
+
 
 ########
 #       SDL options
@@ -22,24 +23,29 @@ SDL_LDFLAGS := $(shell sdl2-config --libs)
 
 ########
 #   This is the default action
-all:Build
+all: build
 
 
 ########
 #   Object list
 #
+# Creates raytracer.o
 OBJ = $(B_DIR)/$(FILE).o
+
+########
+# headers
+HEADERS= $(S_DIR)/SDLauxiliary.h $(S_DIR)/TestModelH.h $(S_DIR)/Raytracer.h $(S_DIR)/Camera.h
 
 
 ########
 #   Objects
-$(B_DIR)/$(FILE).o : $(S_DIR)/$(FILE).cpp $(S_DIR)/SDLauxiliary.h $(S_DIR)/TestModelH.h
+$(B_DIR)/$(FILE).o : $(S_DIR)/$(FILE).cpp $(HEADERS)
 	$(CC) $(CC_OPTS) -o $(B_DIR)/$(FILE).o $(S_DIR)/$(FILE).cpp $(SDL_CFLAGS) $(GLM_CFLAGS)
 
 
 ########
 #   Main build rule
-Build : $(OBJ) Makefile
+build : $(OBJ) Makefile
 	$(CC) $(LN_OPTS) -o $(EXEC) $(OBJ) $(SDL_LDFLAGS)
 
 
