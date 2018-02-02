@@ -3,8 +3,8 @@
 //using namespace std;
 using std::vector;
 
-#define SCREEN_WIDTH 1080
-#define SCREEN_HEIGHT 720
+#define SCREEN_WIDTH 200
+#define SCREEN_HEIGHT 200
 #define FULLSCREEN_MODE false
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -19,8 +19,9 @@ int main(int argc, char* argv[]) {
 
   /* Camera init */
   // TODO move this inside the engine loop or similar.
-  Camera camera = Camera();
-  float f = screen->height;
+  Camera camera = Camera(
+    vec4(0, 0, -1, 1),
+    screen->height/2.0);
 
   /* Model data init */
   vector<Triangle> triangles;
@@ -33,13 +34,13 @@ int main(int argc, char* argv[]) {
     // TODO Start();
 
     /* Updates variables every frame */
-    Update();
+    Update(camera);
 
     /* Clears the screen buffer */
     memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
 
     /* Updates the screen buffer a.k.a renders */
-    DrawRoom(screen, camera, triangles, f);
+    DrawRoom(screen, camera, triangles);
 
     /* Sends the screen buffer for drawing */
     SDL_Renderframe(screen);
@@ -57,7 +58,7 @@ int main(int argc, char* argv[]) {
 // Updates variable values every frame.
 //
 ////////////////////////////////////////////////////////////////////////////////
-void Update() {
+void Update(Camera &camera) {
   static int t = SDL_GetTicks();
   /* Compute frame time */
   int t2 = SDL_GetTicks();
@@ -66,6 +67,20 @@ void Update() {
   /*Good idea to remove this*/
   std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
+  const Uint8* keystate = SDL_GetKeyboardState(0);
+  float cameraSpeed = 0.01;
+  if(keystate[SDL_SCANCODE_UP]) {
+    camera.pos.z += cameraSpeed;
+  }
+  if(keystate[SDL_SCANCODE_DOWN]) {
+    camera.pos.z -= cameraSpeed;
+  }
+  if(keystate[SDL_SCANCODE_LEFT]) {
+    camera.pos.x += cameraSpeed;
+  }
+  if(keystate[SDL_SCANCODE_RIGHT]) {
+    camera.pos.x -= cameraSpeed;
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -79,8 +94,7 @@ void Update() {
 void DrawRoom(
   screen* screen,
   Camera &camera,
-  std::vector<Triangle>& triangles,
-  int focalLength) {
+  std::vector<Triangle>& triangles) {
 
   bool intersects = false;
 
@@ -93,10 +107,10 @@ void DrawRoom(
     for (int j = 0; j < screen->height; j++) {
 
       /* Computes ray direction */
-      d = vec4(i - screen->width / 2, j - screen->width / 2, focalLength, 1);
+      d = vec4(i - screen->width / 2, j - screen->width / 2, camera.f, 1);
 
       /* Checks if ray intersects */
-      intersects = ClosestIntersection(vec4(0, 0, -2, 1),
+      intersects = ClosestIntersection(camera.pos,
                                        d,
                                        triangles,
                                        intersection);

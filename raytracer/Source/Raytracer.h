@@ -35,15 +35,14 @@ struct Intersection {
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-void Update();
+void Update(Camera &camera);
 
 void Draw(screen* screen);
 
 void DrawRoom(
   screen* screen,
   Camera &camera,
-  std::vector<Triangle>& triangles,
-  int focalLength);
+  std::vector<Triangle>& triangles);
 
 bool ClosestIntersection(
   vec4 start,

@@ -7,10 +7,13 @@
 class Camera
 {
 public:
+	/* Camera position */
 	glm::vec4 pos;
+	/* Focal length */
+	float f;
 
-	Camera()
-	: pos(0,0,0,1)
+	Camera(glm::vec4 pos, float f)
+	: pos(pos), f(f)
 	{
 	}
 
