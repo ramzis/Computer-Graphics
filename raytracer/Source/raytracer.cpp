@@ -75,6 +75,7 @@ void Update(Camera &camera) {
   /* Update variables*/
   const Uint8* keystate = SDL_GetKeyboardState(0);
   float cameraSpeed = 0.01;
+
   if(keystate[SDL_SCANCODE_UP]) {
     camera.pos.z += cameraSpeed;
   }
@@ -124,8 +125,8 @@ void DrawRoom(
 
       /* If intersection occurs, draw a pixel */
       if (intersects) {
-        //colour = triangles[intersection.triangleIndex].color;
-				colour = DirectLight(intersection, lightSource, triangles);//shouldn't need to pass the entire triangles vector. TODO: make it so we only need to pass something smaller
+        colour = triangles[intersection.triangleIndex].color;
+				colour *= DirectLight(intersection, lightSource, triangles);//multiply colour by ammount of direct light reaching that point
         PutPixelSDL(screen, i, j, colour);
       }
 
@@ -182,16 +183,26 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
   return intersects;
 }
 
-
-vec3 DirectLight (const Intersection& i, LightSource source, const std::vector<Triangle>& triangles){//TODO: can we figure out how to do this function without the triangle vector?
-
+/*
+@param: i, point where (camera) ray intersects with object
+@param: source, light source in the room
+@param: triangles, vector containing all the traingles, TODO: replace with only the intersecting triangle rather than them all
+@return: D, the power as a colour vector 
+*/
+vec3 DirectLight (const Intersection& i, LightSource source, const std::vector<Triangle>& triangles){
+	
+	//vector between light source and intersection point
 	vec4 r = vec4(source.pos - i.position);
+	//magnitude
 	float rmag = glm::length(r);
-	vec4 rHat = 	r/rmag;//unit vector. direction from source to intersection
+	//unit vector. direction from source to intersection
+	vec4 rHat = 	r/rmag;
+	//lol
 	float pi = 3.1415926535898;
-
+	
+	//dot product of rHat and normal of triangle
 	double dotP = dot(rHat, triangles[i.triangleIndex].normal);
-//	printf("%f\n", dotP);
+	//power per real surface
 	vec3 D = source.color * (float)std::max(dotP, 0.0)/(4*pi*rmag*rmag);
 	return D;
 }
