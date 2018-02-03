@@ -169,9 +169,9 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
     vec3 x = glm::inverse(A) * b;  // x is the intersection point of the plane and ray
 
     // check intersection is inside triangle boundaries
-    bool seven = x.y > 0;
-    bool eight = x.z > 0;
-    bool nine = x.y + x.z < 1;
+    bool seven = x.y >= 0;
+    bool eight = x.z >= 0;
+    bool nine = x.y + x.z <= 1;
     bool eleven = x.x >= 0;
 
     if (seven && eight && nine && eleven) {
