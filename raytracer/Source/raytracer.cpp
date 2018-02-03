@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     screen->height/2.0);
 
   /* light source init */
-  LightSource light = LightSource( vec4(0, -0.5, -0.7, 1.0), 14.f*vec3(1,1,1));
+  LightSource light = LightSource( vec4(0, -0.5, -0.7, 1.0), 50.f*vec3(1,1,1));//that factor of 50 was originally 14 in notes?
 
   //TODO: create world obj? to hold light source, camera, triangles etc
 
@@ -174,7 +174,8 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
       intersects = true;
 
       if (x.x < closestIntersection.distance) {
-        closestIntersection.position = vec4(v0.x, v0.y, v0.z, 1);//should this be x.x*dir?
+//        closestIntersection.position = vec4(v0.x, v0.y, v0.z, 1);//should this be x.x*dir?
+				closestIntersection.position = vec4(x.x * dir.x, x.x * dir.y, x.x * dir.z, 1);
         closestIntersection.distance = x.x;
         closestIntersection.triangleIndex = i;
       }
