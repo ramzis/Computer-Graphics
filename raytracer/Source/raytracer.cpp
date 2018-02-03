@@ -19,9 +19,15 @@ int main(int argc, char* argv[]) {
 
   /* Camera init */
   // TODO move this inside the engine loop or similar.
+	//AK: you don't want to reinitialise in the loop repeatedly? it'll slow down the program?
   Camera camera = Camera(
     vec4(0, 0, -1, 1),
     screen->height/2.0);
+
+  /* light source init */
+  LightSource light = LightSource( vec4(0, -0.5, -0.7, 1.0), 14.f*vec3(1,1,1));
+
+  //TODO: create world obj? to hold light source, camera, triangles etc
 
   /* Model data init */
   vector<Triangle> triangles;
@@ -40,7 +46,7 @@ int main(int argc, char* argv[]) {
     memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
 
     /* Updates the screen buffer a.k.a renders */
-    DrawRoom(screen, camera, triangles);
+    DrawRoom(screen, camera, triangles, light);
 
     /* Sends the screen buffer for drawing */
     SDL_Renderframe(screen);
@@ -94,7 +100,8 @@ void Update(Camera &camera) {
 void DrawRoom(
   screen* screen,
   Camera &camera,
-  std::vector<Triangle>& triangles) {
+  std::vector<Triangle>& triangles,
+	LightSource lightSource) {
 
   bool intersects = false;
 
@@ -117,7 +124,8 @@ void DrawRoom(
 
       /* If intersection occurs, draw a pixel */
       if (intersects) {
-        colour = triangles[intersection.triangleIndex].color;
+        //colour = triangles[intersection.triangleIndex].color;
+				colour = DirectLight(intersection, lightSource, triangles);//shouldn't need to pass the entire triangles vector. TODO: make it so we only need to pass something smaller
         PutPixelSDL(screen, i, j, colour);
       }
 
@@ -125,20 +133,6 @@ void DrawRoom(
   }
 }
 
-
-/*
-void Draw(screen* screen) {
-
-  memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
-
-  vec3 colour(1.0, 0.0, 0.0);
-  for (int i = 0; i < 1000; i++) {
-    uint32_t x = rand() % screen->width;
-    uint32_t y = rand() % screen->height;
-    PutPixelSDL(screen, x, y, colour);
-  }
-}
-*/
 
 //@param start: it's the starting poitn of the ray vector
 //@param dir: the direction the ray vector is travelling
@@ -179,7 +173,7 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
       intersects = true;
 
       if (x.x < closestIntersection.distance) {
-        closestIntersection.position = vec4(v0.x, v0.y, v0.z, 1);  // 1.bmp
+        closestIntersection.position = vec4(v0.x, v0.y, v0.z, 1);//should this be x.x*dir?
         closestIntersection.distance = x.x;
         closestIntersection.triangleIndex = i;
       }
@@ -188,6 +182,17 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
   return intersects;
 }
 
-void buildCameraRay(int i, int j, vec4& start, vec4& dir) {
-  start = vec4(0, 0, 0, 1);
+
+vec3 DirectLight (const Intersection& i, LightSource source, const std::vector<Triangle>& triangles){//TODO: can we figure out how to do this function without the triangle vector?
+
+	vec4 r = vec4(source.pos - i.position);
+	float rmag = glm::length(r);
+	vec4 rHat = 	r/rmag;//unit vector. direction from source to intersection
+	float pi = 3.1415926535898;
+
+	double dotP = dot(rHat, triangles[i.triangleIndex].normal);
+//	printf("%f\n", dotP);
+	vec3 D = source.color * (float)std::max(dotP, 0.0)/(4*pi*rmag*rmag);
+	return D;
 }
+	

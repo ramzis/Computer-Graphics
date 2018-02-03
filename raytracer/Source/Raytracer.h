@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <stdint.h>
-#include <math.h>  //only need abs
+//#include <math.h>  //only need abs
 
 #include <glm/glm.hpp>
 #include <SDL.h>
@@ -11,11 +11,13 @@
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
 #include "Camera.h"
+#include "LightSource.h"
 
 using glm::vec3;
 using glm::mat3;
 using glm::vec4;
 using glm::mat4;
+using glm::dot;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -42,7 +44,8 @@ void Draw(screen* screen);
 void DrawRoom(
   screen* screen,
   Camera &camera,
-  std::vector<Triangle>& triangles);
+  std::vector<Triangle>& triangles,
+	LightSource lightSource);
 
 bool ClosestIntersection(
   vec4 start,
@@ -56,6 +59,6 @@ void buildCameraRay(
   vec4& start,
   vec4& dir);
 
-float distance(vec4& i, vec4& j);
+vec3 DirectLight (const Intersection& i, LightSource source, const std::vector<Triangle>& triangles);
 
 #endif
