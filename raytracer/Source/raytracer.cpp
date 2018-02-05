@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     // TODO Start();
 
     /* Updates variables every frame */
-    Update(camera);
+    Update(camera, light);
 
     /* Clears the screen buffer */
     memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
 // Updates variable values every frame.
 //
 ////////////////////////////////////////////////////////////////////////////////
-void Update(Camera &camera) {
+void Update(Camera &camera, LightSource &light) {
   static int t = SDL_GetTicks();
   /* Compute frame time */
   int t2 = SDL_GetTicks();
@@ -87,6 +87,19 @@ void Update(Camera &camera) {
   }
   if(keystate[SDL_SCANCODE_RIGHT]) {
     camera.pos.x -= cameraSpeed;
+  }
+
+  if(keystate[SDL_SCANCODE_W]) {
+  	light.pos.z += cameraSpeed;
+  }
+  if(keystate[SDL_SCANCODE_S]) {
+  	light.pos.z -= cameraSpeed;
+  }
+  if(keystate[SDL_SCANCODE_A]) {
+  	light.pos.x -= cameraSpeed;
+  }
+  if(keystate[SDL_SCANCODE_D]) {
+  	light.pos.x += cameraSpeed;
   }
 }
 
@@ -129,11 +142,16 @@ void DrawRoom(
         float g = ((double) rand() / (RAND_MAX)) + 1;
         float b = ((double) rand() / (RAND_MAX)) + 1;
 
+        // Funky night camera mode
         //colour = vec3(r,g,b);
         //colour = cross((float)0.3*colour, triangles[intersection.triangleIndex].color);
+        
+        // Grayscale mode
+        //colour = vec3(1,1,1); 
+        
         colour = triangles[intersection.triangleIndex].color;
-        //colour = vec3(1,1,1); Grayscale mode
-				colour *= DirectLight(intersection, lightSource, triangles);//multiply colour by ammount of direct light reaching that point
+		colour *= DirectLight(intersection, lightSource, triangles);//multiply colour by ammount of direct light reaching that point
+        
         PutPixelSDL(screen, i, j, colour);
       }
 
@@ -152,7 +170,7 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
 
   bool intersects = false;
 
-  closestIntersection.position = vec4(1.1, 1.1, 1.1, 1);
+  closestIntersection.position = start;//vec4(1.1, 1.1, 1.1, 1);
   closestIntersection.distance = 100.0;
 
   /* Loop through all triangles in the scene */
@@ -205,15 +223,14 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
 */
 vec3 DirectLight (const Intersection& i, LightSource source, const std::vector<Triangle>& triangles){
 
-	//vector between light source and intersection point
+	//vector between intersection point and light source 
 	vec4 r = vec4(source.pos - i.position);
-  //vec4 r = vec4(i.position- source.pos);
 
 	//magnitude
 	float rmag = glm::length(r);
 	//unit vector. direction from source to intersection
 	//vec4 rHat = r/rmag;
-  vec4 rHat = glm::normalize(r);
+  	vec4 rHat = glm::normalize(r);
 	//lol
 	float pi = 3.1415926535898;
 
@@ -221,5 +238,24 @@ vec3 DirectLight (const Intersection& i, LightSource source, const std::vector<T
 	double dotP = dot(rHat, triangles[i.triangleIndex].normal);
 	//power per real surface
 	vec3 D = source.color * (float)std::max(dotP, 0.0)/(4*pi*rmag*rmag);
+
+	// Shadows
+	bool intersects = false;
+	// Offset to fix shadow-acne, lol
+	float bias = 0.01;
+	vec4 start = i.position+triangles[i.triangleIndex].normal*bias;
+  	vec4 dir = vec4(source.pos - i.position);
+  	Intersection intersection;
+
+	intersects = (ClosestIntersection(
+		start,
+		dir,
+		triangles,
+		intersection));
+
+	if(intersects && intersection.distance <= rmag) {
+		D = vec3(0,0,0);
+	}
+
 	return D;
 }

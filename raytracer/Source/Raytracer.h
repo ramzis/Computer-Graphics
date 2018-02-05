@@ -38,7 +38,7 @@ struct Intersection {
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-void Update(Camera &camera);
+void Update(Camera &camera, LightSource &lightSource);
 
 void Draw(screen* screen);
 
