@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     screen->height/2.0);
 
   /* light source init */
-  LightSource light = LightSource( vec4(0, -0.5, -0.7, 1.0), 50.f*vec3(1,1,1));//that factor of 50 was originally 14 in notes?
+  LightSource light = LightSource(vec4(0, -0.5, -0.7, 1.0), 14.f*vec3(1,1,1));//that factor of 50 was originally 14 in notes?
 
   //TODO: create world obj? to hold light source, camera, triangles etc
 
@@ -125,7 +125,14 @@ void DrawRoom(
 
       /* If intersection occurs, draw a pixel */
       if (intersects) {
+        float r = ((double) rand() / (RAND_MAX)) + 1;
+        float g = ((double) rand() / (RAND_MAX)) + 1;
+        float b = ((double) rand() / (RAND_MAX)) + 1;
+
+        //colour = vec3(r,g,b);
+        //colour = cross((float)0.3*colour, triangles[intersection.triangleIndex].color);
         colour = triangles[intersection.triangleIndex].color;
+        //colour = vec3(1,1,1); Grayscale mode
 				colour *= DirectLight(intersection, lightSource, triangles);//multiply colour by ammount of direct light reaching that point
         PutPixelSDL(screen, i, j, colour);
       }
@@ -138,47 +145,53 @@ void DrawRoom(
 //@param start: it's the starting poitn of the ray vector
 //@param dir: the direction the ray vector is travelling
 bool ClosestIntersection(  // v0+ue1+ve2=s+td
-    vec4 start, vec4 dir, const vector<Triangle>& triangles,
+    vec4 start,
+    vec4 dir,
+    const vector<Triangle>& triangles,
     Intersection& closestIntersection) {
 
   bool intersects = false;
 
   closestIntersection.position = vec4(1.1, 1.1, 1.1, 1);
   closestIntersection.distance = 100.0;
+
+  /* Loop through all triangles in the scene */
   for (uint i = 0; i < triangles.size(); i++) {
+
     Triangle triangle = triangles[i];
-    // get points of triangle
+
+    /* Triangle vertices */
     vec4 v0 = triangle.v0;
     vec4 v1 = triangle.v1;
     vec4 v2 = triangle.v2;
 
-    // gen the plane this triangle is in and vector from start to triangle
+    /* The basis vectors of the triangle plane */
+    vec3 e1 = vec3(v1-v0);
+    vec3 e2 = vec3(v2-v0);
+    /* Camera to triangle plane distance */
+    vec3 b  = vec3(start-v0);
 
-    // basis vectors of the triangle
-    vec3 e1 = vec3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
-    vec3 e2 = vec3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
     // vector from start to corner of triangle
-    vec3 b = vec3(start.x - v0.x, start.y - v0.y, start.z - v0.z);
-
     mat3 A(-(vec3)dir, e1, e2);
     vec3 x = glm::inverse(A) * b;  // x is the intersection point of the plane and ray
 
-    // check intersection is inside triangle boundaries
-    bool seven = x.y >= 0;
-    bool eight = x.z >= 0;
-    bool nine = x.y + x.z <= 1;
-    bool eleven = x.x >= 0;
+    /* Intersection distance and coordinates */
+    float t = x.x;
+    float u = x.y;
+    float v = x.z;
 
-    if (seven && eight && nine && eleven) {
+    /* Check if the intersection is in the triangle plane */
+    if(t > 0 && u >= 0 && v >= 0 && u + v <= 1) {
 
       intersects = true;
 
-      if (x.x < closestIntersection.distance) {
-//        closestIntersection.position = vec4(v0.x, v0.y, v0.z, 1);//should this be x.x*dir?
-				closestIntersection.position = vec4(x.x * dir.x, x.x * dir.y, x.x * dir.z, 1);
-        closestIntersection.distance = x.x;
+      if (t < closestIntersection.distance) {
+        //closestIntersection.position = vec4(b.x, b.y, b.z, 1); // This is cool shit. Also invert lightsource.
+        closestIntersection.position = start+t*dir; // This is correct
+        closestIntersection.distance = t;
         closestIntersection.triangleIndex = i;
       }
+
     }
   }
   return intersects;
@@ -188,23 +201,25 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
 @param: i, point where (camera) ray intersects with object
 @param: source, light source in the room
 @param: triangles, vector containing all the traingles, TODO: replace with only the intersecting triangle rather than them all
-@return: D, the power as a colour vector 
+@return: D, the power as a colour vector
 */
 vec3 DirectLight (const Intersection& i, LightSource source, const std::vector<Triangle>& triangles){
-	
+
 	//vector between light source and intersection point
 	vec4 r = vec4(source.pos - i.position);
+  //vec4 r = vec4(i.position- source.pos);
+
 	//magnitude
 	float rmag = glm::length(r);
 	//unit vector. direction from source to intersection
-	vec4 rHat = 	r/rmag;
+	//vec4 rHat = r/rmag;
+  vec4 rHat = glm::normalize(r);
 	//lol
 	float pi = 3.1415926535898;
-	
+
 	//dot product of rHat and normal of triangle
 	double dotP = dot(rHat, triangles[i.triangleIndex].normal);
 	//power per real surface
 	vec3 D = source.color * (float)std::max(dotP, 0.0)/(4*pi*rmag*rmag);
 	return D;
 }
-	

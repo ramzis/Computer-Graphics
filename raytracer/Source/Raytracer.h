@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdint.h>
 //#include <math.h>  //only need abs
+#include <stdlib.h>
 
 #include <glm/glm.hpp>
 #include <SDL.h>
