@@ -101,6 +101,12 @@ void Update(Camera &camera, LightSource &light) {
   if(keystate[SDL_SCANCODE_D]) {
   	light.pos.x += cameraSpeed;
   }
+  if(keystate[SDL_SCANCODE_Q]) {
+  	light.pos.y -= cameraSpeed;
+  }
+  if(keystate[SDL_SCANCODE_E]) {
+  	light.pos.y += cameraSpeed;
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
