@@ -52,7 +52,8 @@ bool ClosestIntersection(
   vec4 start,
   vec4 dir,
   const std::vector<Triangle>& triangles,
-  Intersection& closestIntersection);
+  Intersection& closestIntersection,
+  bool isShadowRay);
 
 void buildCameraRay(
   int i,

@@ -11,9 +11,11 @@ public:
 	glm::vec4 pos;
 	/* Focal length */
 	float f;
+	/* Color mode */
+	int colorMode;
 
-	Camera(glm::vec4 pos, float f)
-	: pos(pos), f(f)
+	Camera(glm::vec4 pos, float f, int colorMode)
+	: pos(pos), f(f), colorMode(colorMode)
 	{
 	}
 
