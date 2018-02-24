@@ -1,11 +1,12 @@
 #include "Raytracer.h"
+#include "omp.h"
 
-//using namespace std;
 using std::vector;
+
 
 #define SCREEN_WIDTH 200
 #define SCREEN_HEIGHT 200
-#define FULLSCREEN_MODE false
+#define FULLSCREEN_MODE true
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -145,6 +146,9 @@ void DrawRoom(
   vec3 colour;
   vec4 dir;
 
+  omp_set_num_threads(4);
+  #pragma omp parallel default(none) private(dir, colour, intersects, intersection) shared(screen, camera, triangles, lightSource)
+  #pragma omp for
   for (int i = 0; i < screen->width; i++) {
     for (int j = 0; j < screen->height; j++) {
 
