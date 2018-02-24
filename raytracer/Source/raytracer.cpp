@@ -1,12 +1,8 @@
 #include "Raytracer.h"
-#include "omp.h"
-
-using std::vector;
-
 
 #define SCREEN_WIDTH 200
 #define SCREEN_HEIGHT 200
-#define FULLSCREEN_MODE true
+#define FULLSCREEN_MODE false
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -19,15 +15,27 @@ int main(int argc, char* argv[]) {
   screen* screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   /* Camera init */
+  /* Position in coordinates */
+  vec4 camPos = vec4(0, 0, -2, 1);
+  /* Rotation in angles */
+  //vec3 rot = vec3(0,0,0);
+  /* Camera to world matrix */
+  mat4 c2w = mat4(
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    0,0,0,1);
+  /* Object init */
   Camera camera = Camera(
-    vec4(0, 0, -2, 1),
+    camPos,
     screen->height/2.0,
-    0);
+    0,
+    c2w);
 
   /* light source init */
   LightSource light = LightSource(
-  	vec4(0, -0.5, -1.0, 1.0), 
-	14.f * vec3(1,1,1)); // TODO: make light intensity a var?
+    vec4(0, -0.5, -1.0, 1.0), 
+    50.f * vec3(1,1,1)); // TODO: make light intensity a var?
 
   // TODO: create world obj? to hold light source, camera, triangles etc
   // Tadas: Yep, exactly
@@ -68,61 +76,102 @@ int main(int argc, char* argv[]) {
 //
 ////////////////////////////////////////////////////////////////////////////////
 void Update(Camera &camera, LightSource &light) {
-  static int t = SDL_GetTicks();
+    
+  /* RAW VALUES AND COMPUTATION */
+
+  /* Get keyboard input state */
+  const Uint8* keystate = SDL_GetKeyboardState(0);
+
   /* Compute frame time */
+  static int t = SDL_GetTicks();
   int t2 = SDL_GetTicks();
   float dt = float(t2 - t);
   t = t2;
-  /*Good idea to remove this*/
-  std::cout << "Render time: " << dt << " ms." << std::endl;
-  /* Update variables*/
-  const Uint8* keystate = SDL_GetKeyboardState(0);
-  float cameraSpeed = 0.01;
+  
+  /* Good idea to remove this */
+  //std::cout << "Render time: " << dt << " ms." << std::endl;
+  
+  /* UPDATE VARIABLES */
 
-  /* Camera movement */
-  if(keystate[SDL_SCANCODE_UP]) {
-    camera.pos.z += cameraSpeed;
-  }
-  if(keystate[SDL_SCANCODE_DOWN]) {
-    camera.pos.z -= cameraSpeed;
-  }
-  if(keystate[SDL_SCANCODE_LEFT]) {
-    camera.pos.x += cameraSpeed;
-  }
-  if(keystate[SDL_SCANCODE_RIGHT]) {
-    camera.pos.x -= cameraSpeed;
-  }
+  /* Update camera translation, rotation, color mode */
+  UpdateCamera(camera, keystate, dt);
 
   /* Light movement */
+  float lightSpeed = 0.01 * dt;
+
   if(keystate[SDL_SCANCODE_W]) {
-  	light.pos.z += cameraSpeed;
+    light.pos.z += lightSpeed;
   }
   if(keystate[SDL_SCANCODE_S]) {
-  	light.pos.z -= cameraSpeed;
+    light.pos.z -= lightSpeed;
   }
   if(keystate[SDL_SCANCODE_A]) {
-  	light.pos.x -= cameraSpeed;
+    light.pos.x -= lightSpeed;
   }
   if(keystate[SDL_SCANCODE_D]) {
-  	light.pos.x += cameraSpeed;
+    light.pos.x += lightSpeed;
   }
   if(keystate[SDL_SCANCODE_Q]) {
-  	light.pos.y -= cameraSpeed;
+    light.pos.y -= lightSpeed;
   }
   if(keystate[SDL_SCANCODE_E]) {
-  	light.pos.y += cameraSpeed;
+    light.pos.y += lightSpeed;
   }
 
-  /* Camera modes */
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Updates the position, rotation and color mode of the camera.
+//
+////////////////////////////////////////////////////////////////////////////////
+void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime) {
+  
+  /* CAMERA MOVEMENT*/
+
+  /* Movement speed per frame */
+  float cameraSpeed = 0.01 * deltaTime;
+  /* Init translation vector */
+  vec4 cameraTranslate = vec4(0,0,0,0);
+  /* Update translation vector with raw input */
+  if(keystate[SDL_SCANCODE_UP]) {
+    cameraTranslate.z += cameraSpeed;
+  }
+  if(keystate[SDL_SCANCODE_DOWN]) {
+    cameraTranslate.z -= cameraSpeed;
+  }
+  if(keystate[SDL_SCANCODE_LEFT]) {
+    cameraTranslate.x -= cameraSpeed;
+  }
+  if(keystate[SDL_SCANCODE_RIGHT]) {
+    cameraTranslate.x += cameraSpeed;
+  }
+  camera.SetCameraPos(cameraTranslate);
+
+/*
+  std::cout << 
+     "x:" << camera.c2w[0][3] <<
+    " y:" << camera.c2w[1][3] << 
+    " z:" << camera.c2w[2][3] <<
+    " w:" << camera.c2w[3][3] <<
+  std::endl;
+*/
+  /* CAMERA COLOR MODES */
+
+  /* Update camera color mode from raw input */
   if(keystate[SDL_SCANCODE_1]) {
-  	camera.colorMode = 0;
+    camera.colorMode = CAMERA_MODE_0;
   }
   if(keystate[SDL_SCANCODE_2]) {
-  	camera.colorMode = 1;
+    camera.colorMode = CAMERA_MODE_1;
   }
   if(keystate[SDL_SCANCODE_3]) {
-  	camera.colorMode = 2;
+    camera.colorMode = CAMERA_MODE_2;
   }
+  if(keystate[SDL_SCANCODE_4]) {
+    camera.colorMode = 4;
+  }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -136,8 +185,8 @@ void Update(Camera &camera, LightSource &light) {
 void DrawRoom(
   screen* screen,
   Camera &camera,
-  std::vector<Triangle>& triangles,
-  LightSource lightSource) {
+  std::vector<Triangle> &triangles,
+  LightSource &lightSource) {
 
   bool intersects = false;
 
@@ -153,44 +202,44 @@ void DrawRoom(
     for (int j = 0; j < screen->height; j++) {
 
       /* Computes ray direction */
-      dir = vec4(i - screen->width / 2, j - screen->width / 2, camera.f, 1);
+      dir = vec4(i - camera.f, j - camera.f, camera.f, 1);
+      dir = camera.c2w * dir;
 
       /* Checks if ray intersects */
       intersects = ClosestIntersection(
-      	camera.pos,
-		dir,
-		triangles,
-		intersection,
-		false);
+        camera.GetCameraPos(),
+        dir,
+        triangles,
+        intersection,
+        false);
 
       /* If intersection occurs, draw a pixel */
       if (intersects) {
         
         switch(camera.colorMode) {
-        	case 0:
-        		// Normal mode
-        		colour = triangles[intersection.triangleIndex].color;
-        		colour *= DirectLight(intersection, lightSource, triangles);
-        		break;
-        	case 1:
-        		// Grayscale mode
-        		colour = vec3(1,1,1);
-        		colour *= DirectLight(intersection, lightSource, triangles); 
-        		break;
-        	case 2: {
-		        // Funky night camera mode
-		        float r = ((double) rand() / (RAND_MAX)) + 1;
-		        float g = ((double) rand() / (RAND_MAX)) + 1;
-		        float b = ((double) rand() / (RAND_MAX)) + 1;
-		        colour = vec3(r,g,b);
-		        colour = cross((float)0.3*colour, triangles[intersection.triangleIndex].color);
-        	} break;
-        	default:
-        		// Normal mode
-        		colour = triangles[intersection.triangleIndex].color;
-        		break;
+            case 0:
+                // Normal mode
+                colour = triangles[intersection.triangleIndex].color;
+                colour *= DirectLight(intersection, lightSource, triangles);
+                break;
+            case 1:
+                // Grayscale mode
+                colour = vec3(1,1,1);
+                colour *= DirectLight(intersection, lightSource, triangles); 
+                break;
+            case 2: {
+                // Funky night camera mode
+                float r = ((double) rand() / (RAND_MAX)) + 1;
+                float g = ((double) rand() / (RAND_MAX)) + 1;
+                float b = ((double) rand() / (RAND_MAX)) + 1;
+                colour = vec3(r,g,b);
+                colour = cross((float)0.3*colour, triangles[intersection.triangleIndex].color);
+            } break;
+            default:
+                // Normal mode
+                colour = triangles[intersection.triangleIndex].color;
+                break;
         }
-        
         PutPixelSDL(screen, i, j, colour);
       }
 
@@ -264,45 +313,45 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
 @param: triangles, vector containing all the traingles, TODO: replace with only the intersecting triangle rather than them all
 @return: D, the power as a colour vector
 */
-vec3 DirectLight (const Intersection& i, LightSource source, const std::vector<Triangle>& triangles){
+vec3 DirectLight (const Intersection& i, LightSource &source, const std::vector<Triangle>& triangles){
 
-	/* Illumination */
-	/* Vector between intersection point and light source */
-	vec4 r = vec4(source.pos - i.position);
-	/* Distance / magnitude */
-	float rMag = glm::length(r);
-	/* Direction normal */
-  	vec4 rHat = glm::normalize(r);
-  	/* Intersecting triangle normal */
-  	vec4 nHat = triangles[i.triangleIndex].normal;
-	/* lol */
-	const float PI = 3.1415926535898;
-	/* Projection of normals */
-	double dotP = dot(rHat, nHat);
-	/* Power per real surface */
-	vec3 D = source.color * (float)std::max(dotP, 0.0) / (4*PI*rMag*rMag);
+    /* Illumination */
+    /* Vector between intersection point and light source */
+    vec4 r = vec4(source.pos - i.position);
+    /* Distance / magnitude */
+    float rMag = glm::length(r);
+    /* Direction normal */
+    vec4 rHat = glm::normalize(r);
+    /* Intersecting triangle normal */
+    vec4 nHat = triangles[i.triangleIndex].normal;
+    /* lol */
+    const float PI = 3.1415926535898;
+    /* Projection of normals */
+    double dotP = dot(rHat, nHat);
+    /* Power per real surface */
+    vec3 D = source.color * (float)std::max(dotP, 0.0) / (4*PI*rMag*rMag);
 
-	/* Shadows */
-	/* Bias to fix 'shadow-acne', lol */
-	float bias = 0.01;
-	/* Shadow ray start position */ 
-	vec4 start = i.position + nHat * bias;
-	/* Shadow ray direction */
-  	vec4 dir = vec4(source.pos - i.position);
-  	/* Intersection with occluding object */
-  	Intersection intersection;
-  	/* Finding the nearest intersection */
-	bool intersects = false;
-	intersects = (ClosestIntersection(
-		start,
-		dir,
-		triangles,
-		intersection,
-		true));
-	/* If the intersection occludes light */
-	if(intersects && intersection.distance <= rMag) {
-		D = vec3(0,0,0);
-	}
+    /* Shadows */
+    /* Bias to fix 'shadow-acne', lol */
+    float bias = 0.01;
+    /* Shadow ray start position */ 
+    vec4 start = i.position + nHat * bias;
+    /* Shadow ray direction */
+    vec4 dir = vec4(source.pos - i.position);
+    /* Intersection with occluding object */
+    Intersection intersection;
+    /* Finding the nearest intersection */
+    bool intersects = false;
+    intersects = (ClosestIntersection(
+        start,
+        dir,
+        triangles,
+        intersection,
+        true));
+    /* If the intersection occludes light */
+    if(intersects && intersection.distance <= rMag) {
+        D = vec3(0,0,0);
+    }
 
-	return D;
+    return D;
 }
