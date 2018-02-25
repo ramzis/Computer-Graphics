@@ -2,7 +2,7 @@
 
 #define SCREEN_WIDTH 200
 #define SCREEN_HEIGHT 200
-#define FULLSCREEN_MODE false
+#define FULLSCREEN_MODE true
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -15,8 +15,8 @@ int main(int argc, char* argv[]) {
   screen* screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   /* Camera init */
-  /* Position in coordinates */
-  vec4 camPos = vec4(0, 0, -2, 1);
+  /* Position in world coordinates */
+  vec4 camPos = vec4(0, 0, 2, 1);
   /* Rotation in angles */
   //vec3 rot = vec3(0,0,0);
   /* Camera to world matrix */
@@ -25,17 +25,23 @@ int main(int argc, char* argv[]) {
     0,1,0,0,
     0,0,1,0,
     0,0,0,1);
-  /* Object init */
   Camera camera = Camera(
     camPos,
     screen->height/2.0,
     0,
     c2w);
 
-  /* light source init */
+  /* Light source init */
+  /* Position in world coordinates */
+  vec4 lightPos = vec4(0, 0, -2, 1);
+  /* Light colour */
+  vec3 lightColour = vec3(1, 1, 1);
+  /* Light intensity (lower=brighter) */
+  float lightIntensity = 1.0f;
   LightSource light = LightSource(
-    vec4(0, -0.5, -1.0, 1.0), 
-    50.f * vec3(1,1,1)); // TODO: make light intensity a var?
+    lightPos,
+    lightColour,
+    lightIntensity);
 
   // TODO: create world obj? to hold light source, camera, triangles etc
   // Tadas: Yep, exactly
@@ -97,24 +103,24 @@ void Update(Camera &camera, LightSource &light) {
   UpdateCamera(camera, keystate, dt);
 
   /* Light movement */
-  float lightSpeed = 0.01 * dt;
+  float lightSpeed = 0.001 * dt;
 
-  if(keystate[SDL_SCANCODE_W]) {
-    light.pos.z += lightSpeed;
-  }
-  if(keystate[SDL_SCANCODE_S]) {
+  if(keystate[SDL_SCANCODE_H]) {
     light.pos.z -= lightSpeed;
   }
-  if(keystate[SDL_SCANCODE_A]) {
+  if(keystate[SDL_SCANCODE_J]) {
+    light.pos.z += lightSpeed;
+  }
+  if(keystate[SDL_SCANCODE_K]) {
     light.pos.x -= lightSpeed;
   }
-  if(keystate[SDL_SCANCODE_D]) {
+  if(keystate[SDL_SCANCODE_L]) {
     light.pos.x += lightSpeed;
   }
-  if(keystate[SDL_SCANCODE_Q]) {
+  if(keystate[SDL_SCANCODE_U]) {
     light.pos.y -= lightSpeed;
   }
-  if(keystate[SDL_SCANCODE_E]) {
+  if(keystate[SDL_SCANCODE_I]) {
     light.pos.y += lightSpeed;
   }
 
@@ -130,32 +136,50 @@ void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime) {
   /* CAMERA MOVEMENT*/
 
   /* Movement speed per frame */
-  float cameraSpeed = 0.01 * deltaTime;
+  float cameraSpeed = 0.001 * deltaTime;
   /* Init translation vector */
   vec4 cameraTranslate = vec4(0,0,0,0);
   /* Update translation vector with raw input */
-  if(keystate[SDL_SCANCODE_UP]) {
-    cameraTranslate.z += cameraSpeed;
+  if(keystate[SDL_SCANCODE_W]) {
+    cameraTranslate.z = -cameraSpeed;
   }
-  if(keystate[SDL_SCANCODE_DOWN]) {
-    cameraTranslate.z -= cameraSpeed;
+  if(keystate[SDL_SCANCODE_S]) {
+    cameraTranslate.z = cameraSpeed;
   }
   if(keystate[SDL_SCANCODE_LEFT]) {
-    cameraTranslate.x -= cameraSpeed;
+    cameraTranslate.x = cameraSpeed;
   }
   if(keystate[SDL_SCANCODE_RIGHT]) {
-    cameraTranslate.x += cameraSpeed;
+    cameraTranslate.x = -cameraSpeed;
   }
+  /* Update position */
   camera.SetCameraPos(cameraTranslate);
+  /* Rotation speed per frame */
+  float cameraRotSpeed = 0.05f * deltaTime;
+  /* Init rotation vector */
+  vec3 cameraRotate = vec3(0,0,0);
+  /* Update rotation vector with raw input */
+  if(keystate[SDL_SCANCODE_A]) {
+    if(keystate[SDL_SCANCODE_S])
+      cameraRotate.y -= cameraRotSpeed;
+    else
+      cameraRotate.y += cameraRotSpeed;
+  }
+  if(keystate[SDL_SCANCODE_D]) {
+    if(keystate[SDL_SCANCODE_S])
+      cameraRotate.y += cameraRotSpeed;
+    else
+      cameraRotate.y -= cameraRotSpeed;
+  }
+  if(keystate[SDL_SCANCODE_UP]) {
+    cameraRotate.x = -cameraRotSpeed;
+  }
+  if(keystate[SDL_SCANCODE_DOWN]) {
+    cameraRotate.x = cameraRotSpeed;
+  }
+  /* Update rotation */
+  camera.SetCameraRot(cameraRotate);
 
-/*
-  std::cout << 
-     "x:" << camera.c2w[0][3] <<
-    " y:" << camera.c2w[1][3] << 
-    " z:" << camera.c2w[2][3] <<
-    " w:" << camera.c2w[3][3] <<
-  std::endl;
-*/
   /* CAMERA COLOR MODES */
 
   /* Update camera color mode from raw input */
@@ -221,11 +245,13 @@ void DrawRoom(
                 // Normal mode
                 colour = triangles[intersection.triangleIndex].color;
                 colour *= DirectLight(intersection, lightSource, triangles);
+                colour += 0.2f*triangles[intersection.triangleIndex].color;
                 break;
             case 1:
                 // Grayscale mode
                 colour = vec3(1,1,1);
-                colour *= DirectLight(intersection, lightSource, triangles); 
+                colour *= DirectLight(intersection, lightSource, triangles);
+                colour += 0.1f*vec3(1,1,1);
                 break;
             case 2: {
                 // Funky night camera mode
@@ -259,7 +285,7 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
 
   bool intersects = false;
 
-  closestIntersection.position = start;//vec4(1.1, 1.1, 1.1, 1);
+  closestIntersection.position = start;
   closestIntersection.distance = 100.0;
 
   /* Loop through all triangles in the scene */
@@ -319,7 +345,7 @@ vec3 DirectLight (const Intersection& i, LightSource &source, const std::vector<
     /* Vector between intersection point and light source */
     vec4 r = vec4(source.pos - i.position);
     /* Distance / magnitude */
-    float rMag = glm::length(r);
+    float rMag = 0.1 * glm::length(r);
     /* Direction normal */
     vec4 rHat = glm::normalize(r);
     /* Intersecting triangle normal */
@@ -333,11 +359,11 @@ vec3 DirectLight (const Intersection& i, LightSource &source, const std::vector<
 
     /* Shadows */
     /* Bias to fix 'shadow-acne', lol */
-    float bias = 0.01;
-    /* Shadow ray start position */ 
-    vec4 start = i.position + nHat * bias;
+    float bias = 0.000001f;
     /* Shadow ray direction */
     vec4 dir = vec4(source.pos - i.position);
+    /* Shadow ray start position */ 
+    vec4 start = i.position + dir * bias;
     /* Intersection with occluding object */
     Intersection intersection;
     /* Finding the nearest intersection */

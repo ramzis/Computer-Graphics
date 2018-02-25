@@ -11,9 +11,11 @@ public:
 	glm::vec4 pos;
 	/* Light colour */
 	glm::vec3 color;
+	/* Intensity */
+	float intensity;
 
-	LightSource(glm::vec4 pos, glm::vec3 color)
-	: pos(pos), color(color)
+	LightSource(glm::vec4 pos, glm::vec3 color, float intensity)
+	: pos(pos), color(color), intensity(intensity)
 	{
 	}
 
