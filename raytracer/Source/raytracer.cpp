@@ -1,7 +1,7 @@
 #include "Raytracer.h"
 
-#define SCREEN_WIDTH 200
-#define SCREEN_HEIGHT 200
+#define SCREEN_WIDTH 150
+#define SCREEN_HEIGHT 150
 #define FULLSCREEN_MODE true
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -36,8 +36,8 @@ int main(int argc, char* argv[]) {
   vec4 lightPos = vec4(0, 0, -2, 1);
   /* Light colour */
   vec3 lightColour = vec3(1, 1, 1);
-  /* Light intensity (lower=brighter) */
-  float lightIntensity = 1.0f;
+  /* Light intensity */
+  float lightIntensity = 34.0f;
   LightSource light = LightSource(
     lightPos,
     lightColour,
@@ -343,27 +343,26 @@ vec3 DirectLight (const Intersection& i, LightSource &source, const std::vector<
 
     /* Illumination */
     /* Vector between intersection point and light source */
-    vec4 r = vec4(source.pos - i.position);
+    vec4 dir = vec4(source.pos - i.position);
     /* Distance / magnitude */
-    float rMag = 0.1 * glm::length(r);
+    float rMag = glm::length(dir);
     /* Direction normal */
-    vec4 rHat = glm::normalize(r);
+    vec4 rHat = glm::normalize(dir);
     /* Intersecting triangle normal */
     vec4 nHat = triangles[i.triangleIndex].normal;
     /* lol */
-    const float PI = 3.1415926535898;
+    const float PI4 = 12.5663706144;
     /* Projection of normals */
     double dotP = dot(rHat, nHat);
     /* Power per real surface */
-    vec3 D = source.color * (float)std::max(dotP, 0.0) / (4*PI*rMag*rMag);
+    vec3 D = source.color * source.intensity * 
+    (float)std::max(dotP, 0.0) / (PI4*rMag*rMag);
 
     /* Shadows */
     /* Bias to fix 'shadow-acne', lol */
-    float bias = 0.000001f;
-    /* Shadow ray direction */
-    vec4 dir = vec4(source.pos - i.position);
+    float bias = 0.01f;
     /* Shadow ray start position */ 
-    vec4 start = i.position + dir * bias;
+    vec4 start = i.position + rHat * bias;
     /* Intersection with occluding object */
     Intersection intersection;
     /* Finding the nearest intersection */
