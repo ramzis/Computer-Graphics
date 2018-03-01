@@ -71,6 +71,7 @@ void buildCameraRay(
 vec3 DirectLight(
   const Intersection &i,
   LightSource &source,
+  Camera &camera,
   const std::vector<Triangle> &triangles);
 
 #endif

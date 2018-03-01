@@ -46,20 +46,6 @@ public:
     c2w[1][3] += -yDot;
     c2w[2][3] += -zDot;
 
-    // glm::vec4 camPos = glm::vec4(c2w[0][3],c2w[1][3],c2w[2][3],1);
-    // camPos = glm::inverse(c2w) * camPos;
-    // pos = pos + camPos;
-    // c2w[0][3] = pos.x;
-    // c2w[1][3] = pos.y;
-    // c2w[2][3] = pos.z;
-    // /* Create a translation matrix */
-    // glm::mat4 translationMatrix = glm::mat4(
-    //   1,0,0,pos.x,
-    //   0,1,0,pos.y,
-    //   0,0,1,pos.z,
-    //   0,0,0,1);
-    // /* Add translation to the Camera-to-World matrix */
-    // c2w = translationMatrix * c2w;
   }
 
   glm::vec4 GetCameraPos() {
@@ -76,16 +62,16 @@ public:
     /* Degrees to radians rotation */
     glm::vec3 rpf = (float)DEG2RAD * rot;
     /* Create and apply rotations */
-    if(rot.x > 0 || rot.x < 0) {
+    if(rot.z > 0 || rot.z < 0) {
       float sin, cos;
-      sincosf(rpf.x, &sin, &cos);
-      glm::mat4 rotX = glm::mat4(
-        1  , 0  , 0  , 0,
-        0  , cos,-sin, 0,
-        0  , sin, cos, 0,
+      sincosf(rpf.z, &sin, &cos);
+      glm::mat4 rotZ = glm::mat4(
+        cos,-sin, 0  , 0,
+        sin, cos, 0  , 0,
+        0  , 0  , 1  , 0,
         0  , 0  , 0  , 1
         );
-      c2w = rotX * c2w;
+      c2w = rotZ * c2w;
     }
     if(rot.y > 0 || rot.y < 0) {
       float sin, cos;
@@ -98,16 +84,16 @@ public:
         );
       c2w = rotY * c2w;
     }
-    if(rot.z > 0 || rot.z < 0) {
+    if(rot.x > 0 || rot.x < 0) {
       float sin, cos;
-      sincosf(rpf.z, &sin, &cos);
-      glm::mat4 rotZ = glm::mat4(
-        cos,-sin, 0  , 0,
-        sin, cos, 0  , 0,
-        0  , 0  , 1  , 0,
+      sincosf(rpf.x, &sin, &cos);
+      glm::mat4 rotX = glm::mat4(
+        1  , 0  , 0  , 0,
+        0  , cos,-sin, 0,
+        0  , sin, cos, 0,
         0  , 0  , 0  , 1
         );
-      c2w = rotZ * c2w;
+      c2w = rotX * c2w;
     }
   }
 

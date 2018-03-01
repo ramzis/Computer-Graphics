@@ -1,8 +1,8 @@
 #include "Raytracer.h"
 
-#define SCREEN_WIDTH 150
-#define SCREEN_HEIGHT 150
-#define FULLSCREEN_MODE true
+#define SCREEN_WIDTH 500
+#define SCREEN_HEIGHT 500
+#define FULLSCREEN_MODE false
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -33,11 +33,11 @@ int main(int argc, char* argv[]) {
 
   /* Light source init */
   /* Position in world coordinates */
-  vec4 lightPos = vec4(0, 0, -2, 1);
+  vec4 lightPos = vec4(0, 0, -1, 1);
   /* Light colour */
   vec3 lightColour = vec3(1, 1, 1);
   /* Light intensity */
-  float lightIntensity = 34.0f;
+  float lightIntensity = 60.0f;
   LightSource light = LightSource(
     lightPos,
     lightColour,
@@ -244,14 +244,15 @@ void DrawRoom(
             case 0:
                 // Normal mode
                 colour = triangles[intersection.triangleIndex].color;
-                colour *= DirectLight(intersection, lightSource, triangles);
+                colour *= DirectLight(intersection, lightSource, camera, triangles);
+                //colour = vec3(camera.c2w * vec4(colour,0));
                 colour += 0.2f*triangles[intersection.triangleIndex].color;
                 break;
             case 1:
                 // Grayscale mode
                 colour = vec3(1,1,1);
-                colour *= DirectLight(intersection, lightSource, triangles);
-                colour += 0.1f*vec3(1,1,1);
+                colour *= DirectLight(intersection, lightSource, camera, triangles);
+                colour += 0.2f*vec3(1,1,1);
                 break;
             case 2: {
                 // Funky night camera mode
@@ -260,6 +261,8 @@ void DrawRoom(
                 float b = ((double) rand() / (RAND_MAX)) + 1;
                 colour = vec3(r,g,b);
                 colour = cross((float)0.3*colour, triangles[intersection.triangleIndex].color);
+                colour = vec3(camera.c2w * vec4(colour,0));
+                colour += 0.2f*vec3(1,1,1);
             } break;
             default:
                 // Normal mode
@@ -339,7 +342,7 @@ bool ClosestIntersection(  // v0+ue1+ve2=s+td
 @param: triangles, vector containing all the traingles, TODO: replace with only the intersecting triangle rather than them all
 @return: D, the power as a colour vector
 */
-vec3 DirectLight (const Intersection& i, LightSource &source, const std::vector<Triangle>& triangles){
+vec3 DirectLight (const Intersection& i, LightSource &source, Camera &camera, const std::vector<Triangle>& triangles){
 
     /* Illumination */
     /* Vector between intersection point and light source */
@@ -353,10 +356,22 @@ vec3 DirectLight (const Intersection& i, LightSource &source, const std::vector<
     /* lol */
     const float PI4 = 12.5663706144;
     /* Projection of normals */
-    double dotP = dot(rHat, nHat);
+    float cosTheta = std::max(dot(rHat, nHat), 0.f);
     /* Power per real surface */
-    vec3 D = source.color * source.intensity * 
-    (float)std::max(dotP, 0.0) / (PI4*rMag*rMag);
+    vec3 D = source.color * source.intensity * cosTheta /
+      (PI4*rMag*rMag);
+
+    /* Specular */
+    /* Vector between intersection point and camera */
+    vec4 sDir = vec4(camera.GetCameraPos() - i.position);
+    /* Distance / magnitude */
+    float srMag = glm::length(sDir);
+    /* Direction normal */
+    vec4 srHat = glm::normalize(sDir);
+    /* Projection of normals */
+    float cosAlpha = std::max(dot(srHat, nHat), 0.f);
+    /* Power per real surface */
+    D = (source.color * std::pow(cosAlpha, 10.0f) / (PI4*srMag*srMag)) + 0.8f*D;
 
     /* Shadows */
     /* Bias to fix 'shadow-acne', lol */
