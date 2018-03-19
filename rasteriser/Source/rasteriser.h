@@ -24,8 +24,8 @@ void Update();
 void Draw(screen* screen, std::vector<Triangle>& triangles);
 void VertexShader( const vec4& v, ivec2& p );
 void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result);
-void DrawLineSDL( SDL_Surface* surface, ivec2 a, ivec2 b, vec3 colour);//should we define this in our SLD Auxilarry file
-void DrawPolygonEdges(const vector<vec4>& vertices);
+void DrawLineSDL( screen* surface, ivec2 a, ivec2 b, vec3 colour);//should we define this in our SLD Auxilarry file
+void DrawPolygonEdges(screen* screen, const vector<vec4>& vertices);
 
 
 
