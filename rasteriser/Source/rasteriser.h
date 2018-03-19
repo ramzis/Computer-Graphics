@@ -27,10 +27,6 @@ void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result);
 void DrawLineSDL( screen* surface, ivec2 a, ivec2 b, vec3 colour);//should we define this in our SLD Auxilarry file
 void DrawPolygonEdges(screen* screen, const vector<vec4>& vertices);
 
-
-
-
-
-
-
+void BufferPolygonEdges(uint32_t* buff, const vector<vec4>& vertices);
+void DrawLineBuffer(uint32_t* buff, ivec2 a, ivec2 b, vec3 colour);
 #endif

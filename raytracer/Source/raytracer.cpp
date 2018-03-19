@@ -220,7 +220,7 @@ void DrawRoom(
   vec4 dir;
 
   omp_set_num_threads(4);
-  #pragma omp parallel default(none) private(dir, colour, intersects, intersection) shared(screen, camera, triangles, lightSource)
+  #pragma omp parallel default(none)
   #pragma omp for
   for (int i = 0; i < screen->width; i++) {
     for (int j = 0; j < screen->height; j++) {
