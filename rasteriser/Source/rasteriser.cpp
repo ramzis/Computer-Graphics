@@ -89,9 +89,9 @@ void Draw(screen* screen, std::vector<Triangle>& triangles)
     vertices[1] = triangles[i].v1;
     vertices[2] = triangles[i].v2;
 
-    //DrawPolygonEdges(screen, vertices);
     //BufferPolygonEdges(buff, vertices);
     DrawPolygon(screen, vertices, triangles[i].color);
+    DrawPolygonEdges(screen, vertices);
 
     /* Testing DrawLineSDL */
     // vec3 colour(1.,1.,1.);
@@ -208,6 +208,7 @@ void DrawLineBuffer(uint32_t* buff, ivec2 a, ivec2 b, vec3 colour) {
   }
 }
 
+
 void BufferPolygonEdges(uint32_t* buff, const vector<vec4>& vertices){
   
   vec3 color ( 1, 1, 1 );
@@ -223,6 +224,7 @@ void BufferPolygonEdges(uint32_t* buff, const vector<vec4>& vertices){
   DrawLineBuffer(buff, projectedVertices[2], projectedVertices[0], color);
 }
 
+
 void DrawPolygon(screen* screen, const vector<vec4>& vertices, vec3 colour) {
   
   /* Transform each vertex from 3D world position to 2D image position */
@@ -237,6 +239,7 @@ void DrawPolygon(screen* screen, const vector<vec4>& vertices, vec3 colour) {
   DrawPolygonRows(screen, leftPixels, rightPixels, colour);
 }
 
+
 void DrawPolygonRows(
   screen* screen,
   const vector<ivec2>& leftPixels, 
@@ -246,6 +249,7 @@ void DrawPolygonRows(
   for (uint i = 0; i < leftPixels.size(); i++)
     DrawLineSDL(screen, leftPixels[i], rightPixels[i], colour);
 }
+
 
 void ComputePolygonRows(
   const vector<ivec2>& vertexPixels,
@@ -289,6 +293,7 @@ void ComputePolygonRows(
   for(int i=0; i<vertices; i++){
     ivec2 v0 = vertexPixels[i];
     ivec2 v1 = vertexPixels[i+1>=vertices?0:i+1]; // essentially mod
+    // warning: magic below
     int results = abs(v0.y-v1.y) + 1;
     vector<ivec2> result(results);
     Interpolate(v0, v1, result);
