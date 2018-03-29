@@ -6,6 +6,47 @@
 #define SCREEN_HEIGHT 256*2
 #define FULLSCREEN_MODE true
 
+void test() {
+  
+  vector<ivec2> vertexPixels(3);
+  vertexPixels[0] = ivec2(10, 5);
+  vertexPixels[1] = ivec2( 5,10);
+  vertexPixels[2] = ivec2(15,15);
+  vector<ivec2> leftPixels;
+  vector<ivec2> rightPixels;
+  
+  ComputePolygonRows( vertexPixels, leftPixels, rightPixels );
+  
+  for( int row=0; row<leftPixels.size(); ++row )
+  {
+    cout << "Start: ("
+    << leftPixels[row].x << ","
+    << leftPixels[row].y << "). "
+    << "End: ("
+    << rightPixels[row].x << ","
+    << rightPixels[row].y << "). " << endl;
+  }
+}
+
+void test2(){
+
+  vector<ivec2> vertexPixels(3);
+  vertexPixels[0] = ivec2(10, 5);
+  vertexPixels[1] = ivec2( 5,10);
+  vertexPixels[2] = ivec2(15,15);
+    
+  ivec2 v0 = vertexPixels[2];
+  ivec2 v1 = vertexPixels[0];
+  vector<ivec2> result(6);
+  Interpolate(v0, v1, result);
+  for( int row=0; row<result.size(); ++row )
+  {
+    cout << "("
+    << result[row].x << ","
+    << result[row].y << "). " << endl;
+  }
+}
+
 int main( int argc, char* argv[] )
 {
 
@@ -14,13 +55,13 @@ int main( int argc, char* argv[] )
   /* Model data init */
   vector<Triangle> triangles;
   LoadTestModel(triangles);
-
+  //test();
   while( NoQuitMessageSDL() )
-    {
-      Update();
-      Draw(screen, triangles);
-      SDL_Renderframe(screen);
-    }
+  {
+    Update();
+    Draw(screen, triangles);
+    SDL_Renderframe(screen);
+  }
 
   SDL_SaveImage( screen, "screenshot.bmp" );
 
@@ -37,7 +78,7 @@ void Draw(screen* screen, std::vector<Triangle>& triangles)
 
   vector <vec4> vertices(3);
   /* Temp buffer for parallel */
-  uint32_t *buff = new uint32_t[screen->height*screen->width];
+  //uint32_t *buff = new uint32_t[screen->height*screen->width];
 
   //omp_set_num_threads(4);
   //#pragma omp parallel default(none) private(vertices) shared(buff, triangles)
@@ -48,8 +89,9 @@ void Draw(screen* screen, std::vector<Triangle>& triangles)
     vertices[1] = triangles[i].v1;
     vertices[2] = triangles[i].v2;
 
-    DrawPolygonEdges(screen, vertices);
+    //DrawPolygonEdges(screen, vertices);
     //BufferPolygonEdges(buff, vertices);
+    DrawPolygon(screen, vertices, triangles[i].color);
 
     /* Testing DrawLineSDL */
     // vec3 colour(1.,1.,1.);
@@ -180,3 +222,88 @@ void BufferPolygonEdges(uint32_t* buff, const vector<vec4>& vertices){
   DrawLineBuffer(buff, projectedVertices[1], projectedVertices[2], color);
   DrawLineBuffer(buff, projectedVertices[2], projectedVertices[0], color);
 }
+
+void DrawPolygon(screen* screen, const vector<vec4>& vertices, vec3 colour) {
+  
+  /* Transform each vertex from 3D world position to 2D image position */
+  int V = vertices.size();
+  vector<ivec2> vertexPixels(V);
+  for(int i=0; i<V; i++)
+    VertexShader(vertices[i], vertexPixels[i]);
+  
+  vector<ivec2> leftPixels;
+  vector<ivec2> rightPixels;
+  ComputePolygonRows(vertexPixels, leftPixels, rightPixels);
+  DrawPolygonRows(screen, leftPixels, rightPixels, colour);
+}
+
+void DrawPolygonRows(
+  screen* screen,
+  const vector<ivec2>& leftPixels, 
+  const vector<ivec2>& rightPixels,
+  vec3 colour) {
+
+  for (uint i = 0; i < leftPixels.size(); i++)
+    DrawLineSDL(screen, leftPixels[i], rightPixels[i], colour);
+}
+
+void ComputePolygonRows(
+  const vector<ivec2>& vertexPixels,
+  vector<ivec2>& leftPixels,
+  vector<ivec2>& rightPixels) {
+
+  // 1. Find max and min y-value of the polygon
+  // and compute the number of rows it occupies.
+  int minY = +numeric_limits<int>::max(), 
+      maxY = -numeric_limits<int>::max();
+
+  for (uint i = 0; i < vertexPixels.size(); ++i)
+  {
+    if(vertexPixels[i].y < minY)
+      minY = vertexPixels[i].y;
+    if(vertexPixels[i].y > maxY)
+      maxY = vertexPixels[i].y;
+  }
+
+  const int rows = maxY - minY + 1;
+
+  // 2. Resize leftPixels and rightPixels
+  // so that they have an element for each row.
+  leftPixels  = vector<ivec2>(rows);
+  rightPixels = vector<ivec2>(rows);
+
+  // 3. Initialize the x-coordinates in leftPixels
+  // to some really large value and the x-coordinates
+  // in rightPixels to some really small value.
+  for( int i=0; i<rows; ++i )
+  {
+    leftPixels[i].x = +numeric_limits<int>::max();
+    rightPixels[i].x = -numeric_limits<int>::max();
+  }
+  
+  // 4. Loop through all edges of the polygon and use
+  // linear interpolation to find the x-coordinate for
+  // each row it occupies. Update the corresponding
+  // values in rightPixels and leftPixels.
+  int vertices = vertexPixels.size();
+  for(int i=0; i<vertices; i++){
+    ivec2 v0 = vertexPixels[i];
+    ivec2 v1 = vertexPixels[i+1>=vertices?0:i+1]; // essentially mod
+    int results = abs(v0.y-v1.y) + 1;
+    vector<ivec2> result(results);
+    Interpolate(v0, v1, result);
+    for (int r = 0; r < results; r++)
+    {
+      if(result[r].x < leftPixels[result[r].y - minY].x){
+        leftPixels[result[r].y - minY].x = result[r].x;
+        leftPixels[result[r].y - minY].y = result[r].y;
+      }
+      if(result[r].x > rightPixels[result[r].y - minY].x){
+        rightPixels[result[r].y - minY].x = result[r].x;
+        rightPixels[result[r].y - minY].y = result[r].y;
+      }
+    }
+  }
+
+}
+
