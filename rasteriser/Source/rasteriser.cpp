@@ -47,10 +47,15 @@ void test2(){
   }
 }
 
+
 int main( int argc, char* argv[] )
 {
 
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
+
+  float** depthBuffer = new float*[SCREEN_HEIGHT];
+  for(int i = 0; i < SCREEN_HEIGHT; ++i)
+      depthBuffer[i] = new float[SCREEN_WIDTH];
 
   /* Model data init */
   vector<Triangle> triangles;
@@ -59,7 +64,7 @@ int main( int argc, char* argv[] )
   while( NoQuitMessageSDL() )
   {
     Update();
-    Draw(screen, triangles);
+    Draw(screen, depthBuffer, triangles);
     SDL_Renderframe(screen);
   }
 
@@ -71,7 +76,7 @@ int main( int argc, char* argv[] )
 
 
 /*Place your drawing here*/
-void Draw(screen* screen, std::vector<Triangle>& triangles)
+void Draw(screen* screen, float** depthBuffer, std::vector<Triangle>& triangles)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
@@ -312,3 +317,29 @@ void ComputePolygonRows(
 
 }
 
+
+void Interpolate(Pixel a, Pixel b, vector<Pixel>& result) {
+
+}
+
+
+void ComputePolygonRows(
+  const vector<Pixel>& vertexPixels, 
+  vector<Pixel>& leftPixels, 
+  vector<Pixel>& rightPixel) {
+
+}
+
+
+void DrawPolygonRows(
+  screen* screen,
+  const vector<Pixel>& leftPixels, 
+  const vector<Pixel>& rightPixels,
+  vec3 colour) {
+
+}
+
+
+void VertexShader(const vec4& v, Pixel& p) {
+
+}

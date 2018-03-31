@@ -16,12 +16,23 @@ using glm::mat4;
 using glm::ivec2;
 using glm::vec2;
 
+/* ----------------------------------------------------------------------------*/
+/* DATA TYPES																   */   
+
+struct Pixel
+{
+  int x;
+  int y;
+  float zinv;
+};
+
+
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
 void Update();
-void Draw(screen* screen, std::vector<Triangle>& triangles);
+void Draw(screen* screen, float** depthBuffer, std::vector<Triangle>& triangles);
 void VertexShader( const vec4& v, ivec2& p );
 void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result);
 void DrawLineSDL( screen* surface, ivec2 a, ivec2 b, vec3 colour);//should we define this in our SLD Auxilarry file
@@ -29,6 +40,10 @@ void DrawPolygonEdges(screen* screen, const vector<vec4>& vertices);
 void DrawPolygon(screen* screen, const vector<vec4>& vertices, vec3 colour);
 void ComputePolygonRows(const vector<ivec2>& vertexPixels, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels);
 void DrawPolygonRows(screen* screen, const vector<ivec2>& leftPixels, const vector<ivec2>& rightPixels, vec3 colour);
+// Depth buffer versions
+void Interpolate(Pixel a, Pixel b, vector<Pixel>& result);
+void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixel);
+void DrawPolygonRows(screen* screen, const vector<Pixel>& leftPixels, const vector<Pixel>& rightPixels, vec3 colour);
 // These are for attempting OpenMP parallel buffers...
 void BufferPolygonEdges(uint32_t* buff, const vector<vec4>& vertices);
 void DrawLineBuffer(uint32_t* buff, ivec2 a, ivec2 b, vec3 colour);
