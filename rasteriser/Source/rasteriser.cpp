@@ -75,12 +75,12 @@ void test3() {
 void test4(){
 
   vector<Pixel> vertexPixels(3);
-  vertexPixels[0] = Pixel(10, 5, 1.f);
+  vertexPixels[0] = Pixel(10, 5, 0.f);
   vertexPixels[1] = Pixel( 5,10, 5.f);
   vertexPixels[2] = Pixel(15,15, 6.f);
     
-  Pixel v0 = vertexPixels[2];
-  Pixel v1 = vertexPixels[0];
+  Pixel v0 = vertexPixels[1];
+  Pixel v1 = vertexPixels[2];
   vector<Pixel> result(6);
   Interpolate(v0, v1, result);
   for( uint row=0; row<result.size(); ++row )
@@ -90,6 +90,23 @@ void test4(){
     << result[row].y << ","
     << result[row].zinv << "). " << endl;
   }
+}
+
+
+void test5(screen *screen, float* depthBuffer){
+
+  //memset(depthBuffer, 0, screen->height*screen->width*sizeof(float));
+  vector<Pixel> vertexPixels(4);
+  vertexPixels[0] = Pixel(1, 1, 0.2f);
+  vertexPixels[1] = Pixel(50,50, 0.3f);
+  vertexPixels[2] = Pixel(1,50, 2.f);
+  vertexPixels[3] = Pixel(50,1, 6.f);
+
+  //vec3 colour = vec3(0,0,0);
+
+  //DrawLineSDL(screen, depthBuffer, vertexPixels[0], vertexPixels[1], colour);
+  //DrawLineSDL(screen, depthBuffer, vertexPixels[2], vertexPixels[3], colour);
+
 }
 
 int main( int argc, char* argv[] )
@@ -102,13 +119,16 @@ int main( int argc, char* argv[] )
   /* Model data init */
   vector<Triangle> triangles;
   LoadTestModel(triangles);
-  //test4();
+  test5(screen, depthBuffer);
   while( NoQuitMessageSDL() )
   {
     Update();
-    Draw(screen, depthBuffer, triangles);
+    //Draw(screen, depthBuffer, triangles);
     SDL_Renderframe(screen);
   }
+
+  triangles.clear();
+  delete[] depthBuffer;
 
   SDL_SaveImage( screen, "screenshot.bmp" );
 
@@ -140,7 +160,7 @@ void Draw(screen* screen, float* depthBuffer, std::vector<Triangle>& triangles)
     //BufferPolygonEdges(buff, vertices);
     //DrawPolygon(screen, vertices, triangles[i].color);
     DrawPolygonDepth(screen, depthBuffer, vertices, triangles[i].color);
-    DrawPolygonEdges(screen, vertices);
+    //DrawPolygonEdges(screen, vertices);
 
     /* Testing DrawLineSDL */
     // vec3 colour(1.,1.,1.);
@@ -179,7 +199,7 @@ void Update()
   float dt = float(t2-t);
   t = t2;
   /*Good idea to remove this*/
-  std::cout << "Render time: " << dt << " ms." << std::endl;
+  //std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
 }
 

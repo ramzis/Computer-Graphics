@@ -48,9 +48,10 @@ void SDL_SaveImage(screen *s, const char* filename)
     {
       std::cout << "Failed to save image: "
 		<< SDL_GetError() << std::endl;
+      SDL_FreeSurface(surf);
       exit(1);
     }
-  
+  SDL_FreeSurface(surf);
 }
 
 void KillSDL(screen* s)
@@ -59,6 +60,7 @@ void KillSDL(screen* s)
   SDL_DestroyTexture(s->texture);
   SDL_DestroyRenderer(s->renderer);
   SDL_DestroyWindow(s->window);
+  delete s;
   SDL_Quit();
 }
 
@@ -70,7 +72,7 @@ void SDL_Renderframe(screen* s)
   SDL_RenderPresent(s->renderer);
 }
 
-screen* InitializeSDL(int width,int height, bool fullscreen)
+screen* InitializeSDL(int width, int height, bool fullscreen)
 {
   if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) !=0)
     {
@@ -79,7 +81,7 @@ screen* InitializeSDL(int width,int height, bool fullscreen)
       exit(1);
     }
   
-  screen *s = new screen;
+  screen *s = new screen();
   s->width = width;
   s->height = height;
   s->buffer = new uint32_t[width*height];
