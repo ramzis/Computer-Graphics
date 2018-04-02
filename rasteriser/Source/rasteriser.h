@@ -78,7 +78,13 @@ struct Pixel
         return Pixel(x>=0?x:-x, y>=0?y:-y, zinv>=0?zinv:-zinv);
     }
 
+
 };
+    std::ostream& operator<<(std::ostream &o, const Pixel &a)
+    {
+        o << "(" << a.x << "," << a.y << "," << a.zinv << ")";
+        return o;
+    }
 
 
 /* ----------------------------------------------------------------------------*/
