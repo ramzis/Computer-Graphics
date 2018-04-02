@@ -119,8 +119,6 @@ int main( int argc, char* argv[] )
   /* Model data init */
   vector<Triangle> triangles;
   LoadTestModel(triangles);
-  //test5(screen, depthBuffer);
-  //test3();
   while( NoQuitMessageSDL() )
   {
     Update();
@@ -492,11 +490,10 @@ void DrawLineSDL(screen* screen, float* depthBuffer, Pixel a, Pixel b, vec3 colo
   vector<Pixel> line(pixels);
   Interpolate(a, b, line);
   for (uint i = 0; i < line.size(); i++){
-    if(depthBuffer[screen->width*line[i].y + line[i].x] < line[i].zinv){
+    if(depthBuffer[screen->width*line[i].y + line[i].x] < line[i].zinv - 0.01f){
       PutPixelSDL(screen, line[i].x, line[i].y, colour);
       depthBuffer[screen->width*line[i].y + line[i].x] = line[i].zinv;
     }
-      //cout << "(" << line[i].x << "," << line[i].y << "," << line[i].zinv << ")" << endl;
   }
 }
 
