@@ -2,8 +2,8 @@
 #include <omp.h>
 
 
-#define SCREEN_WIDTH 320*2
-#define SCREEN_HEIGHT 256*2
+#define SCREEN_WIDTH 500
+#define SCREEN_HEIGHT 500
 #define FULLSCREEN_MODE true
 
 
@@ -20,6 +20,7 @@ int main( int argc, char* argv[] )
   /* Model data init */
   vector<Triangle> triangles;
   LoadTestModel(triangles);
+  //test4();
   while( NoQuitMessageSDL() )
   {
     Update();
@@ -65,28 +66,35 @@ void Draw(screen* screen, vector<Triangle>& triangles) {
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
   memset(screen->depthBuffer, 0, screen->height*screen->width*sizeof(float));
 
-  vector<vec4> vertices(3);
+  vector<Vertex> vertices(3);
 
   //omp_set_num_threads(4);
   //#pragma omp parallel default(none) private(vertices) shared(buff, triangles)
   //#pragma omp parallel for
   for (uint32_t i=0; i < triangles.size(); ++i) {
 
-    vertices[0] = triangles[i].v0;
-    vertices[1] = triangles[i].v1;
-    vertices[2] = triangles[i].v2;
+    vertices[0].pos = triangles[i].v0;
+    vertices[0].normal = triangles[i].normal;
+    vertices[0].colour = triangles[i].color;
+    vertices[0].reflectance = vec2(0.5f,0.7f);
+    vertices[1].pos = triangles[i].v1;
+    vertices[1].normal = triangles[i].normal;
+    vertices[1].colour = triangles[i].color;
+    vertices[1].reflectance = vec2(0.5f,1.0f);
+    vertices[2].pos = triangles[i].v2;
+    vertices[2].normal = triangles[i].normal;
+    vertices[2].colour = triangles[i].color;
+    vertices[2].reflectance = vec2(0.5f,0.7f);
 
     // Not implemented
     //BufferPolygonEdges(buff, vertices);
     // No depth old
     //DrawPolygon(screen, vertices, triangles[i].color);
     // New with depth
-    DrawPolygonDepth(screen, vertices, triangles[i].color);
+    DrawPolygonDepth(screen, vertices);
     // Optionally show edges
     //DrawPolygonEdges(screen, vertices);
-
   }
-
 }
 
 
@@ -95,43 +103,68 @@ void Draw(screen* screen, vector<Triangle>& triangles) {
 // Draws a 3D polygon onto the screen.
 //
 ////////////////////////////////////////////////////////////////////////////////
-void DrawPolygonDepth(
-  screen* screen,
-  const vector<vec4>& vertices,
-  vec3 colour) {
+void DrawPolygonDepth(screen* screen, const vector<Vertex>& vertices) {
   
-  /* Transform each vertex from 3D world position to 2D image position */
+  /* Transform each 3D Vertex to a 2D Pixel */
   int V = vertices.size();
   vector<Pixel> vertexPixels(V);
-  for(int i=0; i<V; i++)
+  for(int i=0; i<V; i++){
     VertexShader(vertices[i], vertexPixels[i]);
+  }
   
   /* Find the rows that make up the polygon */
   vector<Pixel> leftPixels, rightPixels;
   ComputePolygonRows(vertexPixels, leftPixels, rightPixels);
   /* Draw the rows that make up the polygon */
   for (uint i = 0; i < leftPixels.size(); i++)
-    DrawLineSDL(screen, leftPixels[i], rightPixels[i], colour);
+    DrawLineSDL(screen, leftPixels[i], rightPixels[i]);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Creates a perspective projection of a 3D polygon onto the camera plane.
+// Creates a perspective projection of a Vertex onto the camera plane.
 // Calculates the inverse depth of each vertex.
+// Calculates per-vertex illumination.
 //
 ////////////////////////////////////////////////////////////////////////////////
 // TODO: use real camera.
-void VertexShader(const vec4& v, Pixel& p) {
+void VertexShader(const Vertex& v, Pixel& p) {
 
-  vec4 cameraPos(0, 0, -3., 1);
+  vec4 cameraPos(0, 0, -2.5f, 1);
   float f = 400.0f;
   
-  vec4 v_1 = v - cameraPos;
-  p.x = f * v_1.x / v_1.z + SCREEN_WIDTH/2;
-  p.y = f * v_1.y / v_1.z + SCREEN_HEIGHT/2;
-  if(v_1.z != 0) p.zinv = 1 / v_1.z;
+  vec4 pos = v.pos - cameraPos;
+  if(pos.z != 0) p.zinv = 1 / pos.z;
+  p.x = int(f * pos.x * p.zinv) + SCREEN_WIDTH/2;
+  p.y = int(f * pos.y * p.zinv) + SCREEN_HEIGHT/2;
+
+  /* Calculate illumination */
+  p.illumination = DirectLight(v);
+ 
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Performs per-pixel shading and draws a pixel to the screen.
+//
+////////////////////////////////////////////////////////////////////////////////
+void PixelShader(screen* screen, const Pixel& p) {
+
+  if(screen->depthBuffer[screen->width*p.y + p.x] < p.zinv - 0.001f) {
+      // Artsy :)
+      // if(a.zinv < b.zinv)
+      //   PutPixelSDL(screen, line[i].x, line[i].y, colour*(0.0f + ((float)i/line.size())));
+      // else
+      //   PutPixelSDL(screen, line[i].x, line[i].y, colour*(1.0f - ((float)i/line.size())));
+      if(p.x < screen->width-1 && p.x >=0 && p.y < screen->height && p.y >=0){
+        PutPixelSDL(screen, p.x, p.y, p.illumination);
+        screen->depthBuffer[screen->width*p.y + p.x] = p.zinv;
+      }
+  }
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -146,29 +179,30 @@ void Interpolate(Pixel a, Pixel b, vector<Pixel>& result) {
   vec3 step = vec3(d.x, d.y, d.zinv) / float(max(N-1,1));
   vec3 current = vec3(a.x, a.y, a.zinv);
 
+  vec3 colourStep = d.illumination / float(max(N-1,1));
+  vec3 currentColour = a.illumination;
+
   for(int i=0; i<N; i++){
-    result[i] = Pixel(current.x, current.y, current.z);
+    result[i] = Pixel(current.x, current.y, current.z, currentColour);
     current += step;
+    currentColour += colourStep;
   }
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Draws a line on the screen. 
+// Draws a line on the screen between two Pixel values.
 //
 ////////////////////////////////////////////////////////////////////////////////
-void DrawLineSDL(screen* screen, Pixel a, Pixel b, vec3 colour) {
+void DrawLineSDL(screen* screen, Pixel& a, Pixel& b) {
   
   Pixel delta = (a-b).abs();
   int pixels = glm::max(delta.x, delta.y) + 1;
   vector<Pixel> line(pixels);
   Interpolate(a, b, line);
-  for (uint i = 0; i < line.size(); i++){
-    if(screen->depthBuffer[screen->width*line[i].y + line[i].x] < line[i].zinv - 0.001f){
-      PutPixelSDL(screen, line[i].x, line[i].y, colour);
-      screen->depthBuffer[screen->width*line[i].y + line[i].x] = line[i].zinv;
-    }
+  for (int i = 0; i < pixels; i++){
+    PixelShader(screen, line[i]);
   }
 }
 
@@ -227,19 +261,48 @@ void ComputePolygonRows(
     for (int r = 0; r < results; r++)
     {
       if(result[r].x < leftPixels[result[r].y - minY].x){
-        leftPixels[result[r].y - minY].x = result[r].x;
-        leftPixels[result[r].y - minY].y = result[r].y;
-        leftPixels[result[r].y - minY].zinv = result[r].zinv;
+        leftPixels[result[r].y - minY] = result[r];
+        // Fun with frequencies
+        //if((result[r].y - minY)%2==0) leftPixels[result[r].y - minY].illumination=vec3(1,1,1);
+        //else leftPixels[result[r].y - minY].illumination=vec3(0,0,0);
+
       }
       if(result[r].x > rightPixels[result[r].y - minY].x){
-        rightPixels[result[r].y - minY].x = result[r].x;
-        rightPixels[result[r].y - minY].y = result[r].y;
-        rightPixels[result[r].y - minY].zinv = result[r].zinv;
+        rightPixels[result[r].y - minY] = result[r];
+        //if((result[r].y - minY)%8==0) leftPixels[result[r].y - minY].illumination=vec3(1,1,1);
+        //else leftPixels[result[r].y - minY].illumination=vec3(0,0,0);
       }
     }
   }
 }
 
+vec3 DirectLight(const Vertex &v){
+
+    vec4 lightPos(0.f,-0.5f,-0.7f, 1.0f);
+    vec3 lightPower = 30.1f*vec3( 1, 1, 1 );
+    vec3 indirectLightPowerPerArea = 0.5f*vec3(1.f, 1.f, 1.f);
+    
+    /* Illumination */
+    /* Vector between intersection point and light source */
+    vec4 dir = lightPos - v.pos;
+    /* Distance / magnitude */
+    float rMag = glm::length(dir);
+    /* Direction normal */
+    vec4 rHat = glm::normalize(dir);
+    /* Vertex normal */
+    vec4 nHat = v.normal;
+    /* lol */
+    const float PI4 = 12.5663706144;
+    /* Projection of normals */
+    float cosTheta = std::max(dot(rHat, nHat), 0.f);
+    /* Power per real surface */
+    vec3 D = (lightPower * cosTheta) / (PI4*rMag*rMag);
+    D = (D + indirectLightPowerPerArea);
+    D *= v.colour;
+
+    return D;
+
+}
 
 /*===========================
  * WORKING POLYGON NO DEPTH 
@@ -458,9 +521,9 @@ void test3() {
 void test4(){
 
   vector<Pixel> vertexPixels(3);
-  vertexPixels[0] = Pixel(10, 5, 0.f);
-  vertexPixels[1] = Pixel( 5,10, 5.f);
-  vertexPixels[2] = Pixel(15,15, 6.f);
+  vertexPixels[0] = Pixel(10, 5, 0.f, vec3(1.f,0.f,0.f));
+  vertexPixels[1] = Pixel( 5,10, 5.f, vec3(.7f,0.f,0.f));
+  vertexPixels[2] = Pixel(15,15, 6.f, vec3(.9f,0.f,0.f));
     
   Pixel v0 = vertexPixels[0];
   Pixel v1 = vertexPixels[2];
@@ -471,22 +534,30 @@ void test4(){
     cout << "("
     << result[row].x << ","
     << result[row].y << ","
-    << result[row].zinv << "). " << endl;
+    << result[row].zinv << ","
+    << "(" 
+    << result[row].illumination.x << ","
+    << result[row].illumination.y << ","
+    << result[row].illumination.z << ")"
+    << endl;
   }
 }
 
 void test5(screen *screen){
 
   memset(screen->depthBuffer, 0, screen->height*screen->width*sizeof(float));
+  vec3 colour = vec3(1.,1.,1.);
 
   vector<Pixel> vertexPixels(4);
   vertexPixels[0] = Pixel(1, 1, 0.2f);
+  vertexPixels[0].illumination = colour;
   vertexPixels[1] = Pixel(50,50, 0.3f);
+  vertexPixels[1].illumination = colour;
   vertexPixels[2] = Pixel(1,50, 2.f);
+  vertexPixels[2].illumination = colour;
   vertexPixels[3] = Pixel(50,1, 6.f);
+  vertexPixels[3].illumination = colour;
 
-  vec3 colour = vec3(1.,1.,1.);
-
-  DrawLineSDL(screen, vertexPixels[0], vertexPixels[1], colour);
-  DrawLineSDL(screen, vertexPixels[2], vertexPixels[3], colour);
+  DrawLineSDL(screen, vertexPixels[0], vertexPixels[1]);
+  DrawLineSDL(screen, vertexPixels[2], vertexPixels[3]);
 }
