@@ -25,11 +25,11 @@ struct Pixel
     int x;
     int y;
     float zinv;
-    vec3 illumination;
+    vec4 pos3d;
 
     // default + parameterized constructor
-    Pixel(int x=0, int y=0, float zinv=0.0f, vec3 illumination=vec3(1.f,1.f,1.f)) 
-        : x(x), y(y), zinv(zinv), illumination(illumination)
+    Pixel(int x=0, int y=0, float zinv=0.0f, vec4 pos3d=vec4(0.f,0.f,0.f,1.f)) 
+        : x(x), y(y), zinv(zinv), pos3d(pos3d)
     {
     }
 
@@ -38,7 +38,7 @@ struct Pixel
         x=a.x;
         y=a.y;
         zinv=a.zinv;
-        illumination=a.illumination;
+        pos3d=a.pos3d;
         return *this;
     }
 
@@ -47,18 +47,18 @@ struct Pixel
         x+=a.x;
         y+=a.y;
         zinv+=a.zinv;
-        illumination+=a.illumination;
+        pos3d+=a.pos3d;
         return *this;
     }
 
     Pixel operator+(const Pixel& a) const
     {
-        return Pixel(a.x+x, a.y+y, a.zinv+zinv, a.illumination+illumination);
+        return Pixel(a.x+x, a.y+y, a.zinv+zinv, a.pos3d+pos3d);
     }
 
     Pixel operator-(const Pixel& a) const
     {
-        return Pixel(x-a.x, y-a.y, zinv-a.zinv, illumination-a.illumination);
+        return Pixel(x-a.x, y-a.y, zinv-a.zinv, pos3d-a.pos3d);
     }
 
     /*Pixel operator/(const Pixel& a) const
@@ -69,12 +69,12 @@ struct Pixel
     Pixel operator/(const float& a) const
     {
         if(a == 0) throw std::invalid_argument( "division by zero" );
-        return Pixel(x/a, y/a, zinv/a, illumination/a);
+        return Pixel(x/a, y/a, zinv/a, pos3d/a);
     }
 
     bool operator==(const Pixel& a) const
     {
-        return (x == a.x && y == a.y && zinv == a.zinv && illumination == a.illumination);
+        return (x == a.x && y == a.y && zinv == a.zinv && pos3d == a.pos3d);
     }
 
     Pixel abs() {
@@ -83,17 +83,32 @@ struct Pixel
 
 
 };
-    std::ostream& operator<<(std::ostream &o, const Pixel &a)
-    {
-        o << "(" << a.x << "," << a.y << "," << a.zinv << ")";
-        return o;
-    }
+
+std::ostream& operator<<(std::ostream &o, const Pixel &a)
+{
+    o << "(" << a.x << "," << a.y << "," << a.zinv << ")";
+    return o;
+}
+
+std::ostream& operator<<(std::ostream &o, const vec3 &a)
+{
+    o << "(" << a.x << "," << a.y << "," << a.z << ")";
+    return o;
+}
+
+std::ostream& operator<<(std::ostream &o, const vec4 &a)
+{
+    o << "(" << a.x << "," << a.y << "," << a.z << "," << a.w  << ")";
+    return o;
+}
 
 struct Vertex {
     vec4 pos;
-    vec4 normal;
-    vec3 colour;
-    vec2 reflectance;
+
+    Vertex(vec4 pos=vec4(0.f,0.f,0.f,1.f)) 
+        : pos(pos)
+    {
+    }
 };
 
 
@@ -110,13 +125,13 @@ void DrawPolygon(screen* screen, const vector<vec4>& vertices, vec3 colour);
 void ComputePolygonRows(const vector<ivec2>& vertexPixels, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels);
 void DrawPolygonRows(screen* screen, const vector<ivec2>& leftPixels, const vector<ivec2>& rightPixels, vec3 colour);
 // Depth buffer versions
-void VertexShader( const Vertex& v, Pixel& p );
-void PixelShader(screen* screen, const Pixel& p);
 void Interpolate(Pixel a, Pixel b, vector<Pixel>& result);
-void DrawLineSDL(screen* surface, Pixel& a, Pixel& b);
+void DrawPolygonDepth(screen* screen, const Triangle &t);
 void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels);
-void DrawPolygonDepth(screen* screen, const vector<Vertex>& vertices);
-vec3 DirectLight(const Vertex &v);
+void VertexShader( const Vertex& v, Pixel& p );
+void PixelShader(screen* screen, const Pixel& p, const vec4 &normal, const vec3 &colour, const vec3 &reflectance);
+void DrawLineSDL(screen* screen, Pixel& a, Pixel& b, const vec4 &normal, const vec3 &colour, const vec3 &reflectance); 
+vec3 DirectLight(const Pixel &p, const vec4 &normal, const vec3 &reflectance);
 // These are for attempting OpenMP parallel buffers...
 void BufferPolygonEdges(uint32_t* buff, const vector<vec4>& vertices);
 void DrawLineBuffer(uint32_t* buff, ivec2 a, ivec2 b, vec3 colour);
