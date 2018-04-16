@@ -179,7 +179,7 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t) {
   ComputePolygonRows(vertexPixels, leftPixels, rightPixels);
   /* Draw the rows that make up the polygon */
   for (uint i = 0; i < leftPixels.size(); i++)
-    DrawLineSDL(screen, leftPixels[i], rightPixels[i],
+    DrawLineSDL(screen, camera, leftPixels[i], rightPixels[i],
       t.normal, t.color, t.reflectance);
 }
 
@@ -212,10 +212,10 @@ void VertexShader(Camera &camera, const Vertex& v, Pixel& p) {
 // Performs per-pixel shading and draws a pixel to the screen.
 //
 ////////////////////////////////////////////////////////////////////////////////
-void PixelShader(screen* screen, const Pixel& p,
+void PixelShader(screen* screen, Camera &camera, const Pixel& p,
   const vec4 &normal, const vec3 &colour, const vec3 &reflectance) {
 
-  vec3 illumination = colour * DirectLight(p, normal, reflectance);
+  vec3 illumination = colour * DirectLight(camera, p, normal, reflectance);
 
   if(screen->depthBuffer[screen->width*p.y + p.x] < p.zinv - 0.001f) {
     if(p.x < screen->width-1 && p.x >=0 && p.y < screen->height && p.y >=0){
@@ -269,7 +269,7 @@ void Interpolate(Pixel a, Pixel b, vector<Pixel>& result) {
 // Draws a line on the screen between two Pixel values.
 //
 ////////////////////////////////////////////////////////////////////////////////
-void DrawLineSDL(screen* screen, Pixel& a, Pixel& b,
+void DrawLineSDL(screen* screen, Camera &camera, Pixel& a, Pixel& b,
   const vec4 &normal, const vec3 &colour, const vec3 &reflectance) {
 
   Pixel delta = (a-b).abs();
@@ -277,7 +277,7 @@ void DrawLineSDL(screen* screen, Pixel& a, Pixel& b,
   vector<Pixel> line(pixels);
   Interpolate(a, b, line);
   for (int i = 0; i < pixels; i++){
-    PixelShader(screen, line[i], normal, colour, reflectance);
+    PixelShader(screen, camera, line[i], normal, colour, reflectance);
   }
 }
 
@@ -344,10 +344,10 @@ void ComputePolygonRows(
 }
 
 // TODO: use reflectance, use real camera.
-vec3 DirectLight(const Pixel &p, const vec4 &normal, const vec3 &reflectance){
+vec3 DirectLight(Camera &camera, const Pixel &p, const vec4 &normal, const vec3 &reflectance){
 
 
-    vec4 cameraPos(0, 0, -2.5f, 1);
+    vec4 cameraPos = camera.GetCameraPos();
     vec4 lightPos(0.f,-0.5f,-0.7f, 1.0f);
     lightPos -= cameraPos;
     vec3 lightPower = 50.1f*vec3( 1, 1, 1 );

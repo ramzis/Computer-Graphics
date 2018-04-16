@@ -139,9 +139,9 @@ void Interpolate(Pixel a, Pixel b, vector<Pixel>& result);
 void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t);
 void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels);
 void VertexShader(Camera &camera, const Vertex& v, Pixel& p );
-void PixelShader(screen* screen, const Pixel& p, const vec4 &normal, const vec3 &colour, const vec3 &reflectance);
-void DrawLineSDL(screen* screen, Pixel& a, Pixel& b, const vec4 &normal, const vec3 &colour, const vec3 &reflectance);
-vec3 DirectLight(const Pixel &p, const vec4 &normal, const vec3 &reflectance);
+void PixelShader(screen* screen, Camera &camera, const Pixel& p, const vec4 &normal, const vec3 &colour, const vec3 &reflectance);
+void DrawLineSDL(screen* screen, Camera &camera, Pixel& a, Pixel& b, const vec4 &normal, const vec3 &colour, const vec3 &reflectance);
+vec3 DirectLight(Camera &camera, const Pixel &p, const vec4 &normal, const vec3 &reflectance);
 // These are for attempting OpenMP parallel buffers...
 void BufferPolygonEdges(uint32_t* buff, const vector<vec4>& vertices);
 void DrawLineBuffer(uint32_t* buff, ivec2 a, ivec2 b, vec3 colour);
