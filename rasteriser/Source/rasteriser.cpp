@@ -159,11 +159,25 @@ void Interpolate(Pixel a, Pixel b, vector<Pixel>& result) {
   vec3 step = vec3(d.x, d.y, d.zinv) / float(max(N-1,1));
   vec3 current = vec3(a.x, a.y, a.zinv);
 
-  vec4 posStep = d.pos3d / float(max(N-1,1));
-  vec4 currentPos = a.pos3d;  
+  //vec4 posStep = d.pos3d / float(max(N-1,1));
+  //vec4 currentPos = a.pos3d;
+
+  vec4 diff = vec4(
+    b.pos3d.x * b.zinv - a.pos3d.x * a.zinv,
+    b.pos3d.y * b.zinv - a.pos3d.y * a.zinv,
+    b.pos3d.z - a.pos3d.z,
+    b.pos3d.w - a.pos3d.w);
+  
+  vec4 posStep = diff / (float(max(N-1,1)));
+  
+  vec4 currentPos = vec4(
+    a.pos3d.x * a.zinv,
+    a.pos3d.y * a.zinv,
+    a.pos3d.z,
+    a.pos3d.w);  
 
   for(int i=0; i<N; i++){
-    result[i] = Pixel(current.x, current.y, current.z, currentPos);
+    result[i] = Pixel(current.x, current.y, current.z, vec4(currentPos.x/current.z,currentPos.y/current.z,currentPos.z,currentPos.w));
     current += step;
     currentPos += posStep;
   }
