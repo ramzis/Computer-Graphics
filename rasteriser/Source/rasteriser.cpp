@@ -23,7 +23,7 @@ int main( int argc, char* argv[] )
 
   /* Camera init */
   /* Position in world coordinates */
-  vec4 camPos = vec4(0, 0, 2, 1);
+  vec4 camPos = vec4(0, 0, 5, 1);//NOTE: z=0 is the back wall and +ve z is towards the camera
   /* Rotation in angles */
   //vec3 rot = vec3(0,0,0);
   /* Camera to world matrix */
@@ -348,9 +348,11 @@ vec3 DirectLight(Camera &camera, const Pixel &p, const vec4 &normal, const vec3 
 
 
     vec4 cameraPos = camera.GetCameraPos();
-    vec4 lightPos(0.f,-0.5f,-0.7f, 1.0f);
+    //vec4 cameraPos(0, 0, -2.5f, 1);
+    vec4 lightPos(0.f,-1.f,0.f, 1.0f);
     lightPos -= cameraPos;
-    vec3 lightPower = 50.1f*vec3( 1, 1, 1 );
+    //TODO:remove the change of the camera's rotation
+    vec3 lightPower = 10.1f*vec3( 1, 1, 1 );
     vec3 indirectLightPowerPerArea = 0.5f*vec3(1.f, 1.f, 1.f);
 
     /* Illumination */
