@@ -22,8 +22,6 @@ public:
   /* Color mode */
   int colorMode;
 
-  glm::mat4 rotMat;
-
   Camera(glm::vec4 pos, float f, int colorMode, glm::mat4 c2w)
   : c2w(c2w), f(f), colorMode(colorMode)
   {
@@ -73,7 +71,7 @@ public:
         0  , 0  , 1  , 0,
         0  , 0  , 0  , 1
         );
-      rotMat = rotZ * rotMat;
+      c2w = rotZ * c2w;
     }
     if(rot.y > 0 || rot.y < 0) {
       float sin, cos;
@@ -84,7 +82,7 @@ public:
        -sin, 0  , cos, 0,
         0  , 0  , 0  , 1
         );
-      rotMat = rotY * rotMat;
+      c2w = rotY * c2w;
     }
     if(rot.x > 0 || rot.x < 0) {
       float sin, cos;
@@ -95,12 +93,8 @@ public:
         0  , sin, cos, 0,
         0  , 0  , 0  , 1
         );
-      rotMat = rotX * rotMat;
+      c2w = rotX * c2w;
     }
-  }
-
-  glm::mat4 getRotationMatrix(){
-    return rotMat;
   }
 
 };

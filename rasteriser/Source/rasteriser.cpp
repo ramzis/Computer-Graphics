@@ -4,7 +4,7 @@
 
 #define SCREEN_WIDTH 500
 #define SCREEN_HEIGHT 500
-#define FULLSCREEN_MODE false
+#define FULLSCREEN_MODE true
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -23,7 +23,8 @@ int main( int argc, char* argv[] )
 
   /* Camera init */
   /* Position in world coordinates */
-  vec4 camPos = vec4(0, 0, 5, 1);//NOTE: z=0 is the back wall and +ve z is towards the camera
+  // NOTE: z=0 is the back wall and +ve z is towards the camera
+  vec4 camPos = vec4(0.f,0.f,2.0f, 1.0f);
   /* Rotation in angles */
   //vec3 rot = vec3(0,0,0);
   /* Camera to world matrix */
@@ -84,6 +85,8 @@ void Update(Camera &camera)
 //
 ////////////////////////////////////////////////////////////////////////////////
 void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime) {
+  /* CAMERA MOVEMENT*/
+
   /* Movement speed per frame */
   float cameraSpeed = 0.001 * deltaTime;
   /* Init translation vector */
@@ -101,9 +104,8 @@ void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime) {
   if(keystate[SDL_SCANCODE_RIGHT]) {
     cameraTranslate.x = -cameraSpeed;
   }
+  /* Update position */
   camera.SetCameraPos(cameraTranslate);
-
-  //TODO: fix rotation
   /* Rotation speed per frame */
   float cameraRotSpeed = 0.05f * deltaTime;
   /* Init rotation vector */
@@ -193,16 +195,11 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t) {
 ////////////////////////////////////////////////////////////////////////////////
 void VertexShader(Camera &camera, const Vertex& v, Pixel& p) {
 
-  //vec4 cameraPos(0, 0, -2.5f, 1);
-  vec4 cameraPos = camera.GetCameraPos();
-  float f = 400.0f;
-
-  vec4 pos = v.pos - cameraPos;
-  //TODO: rotation
-  pos = pos * camera.getRotationMatrix();
-  if(pos.z != 0) p.zinv = 1 / pos.z;
-  p.x = int(f * pos.x * p.zinv) + SCREEN_WIDTH/2;
-  p.y = int(f * pos.y * p.zinv) + SCREEN_HEIGHT/2;
+  //vec4 pos = v.pos;
+  vec4 pos = v.pos - camera.GetCameraPos();
+  p.zinv = 1 / (pos.z == 0 ? 0.0001f : pos.z);
+  p.x = int(camera.f * pos.x * p.zinv) + SCREEN_WIDTH/2;
+  p.y = int(camera.f * pos.y * p.zinv) + SCREEN_HEIGHT/2;
   p.pos3d = pos;
 }
 
@@ -217,8 +214,8 @@ void PixelShader(screen* screen, Camera &camera, const Pixel& p,
 
   vec3 illumination = colour * DirectLight(camera, p, normal, reflectance);
 
-  if(screen->depthBuffer[screen->width*p.y + p.x] < p.zinv - 0.001f) {
-    if(p.x < screen->width-1 && p.x >=0 && p.y < screen->height && p.y >=0){
+  if(p.x < screen->width && p.x >=0 && p.y < screen->height && p.y >=0){
+    if(screen->depthBuffer[screen->width*p.y + p.x] < p.zinv - 0.001f) {
       PutPixelSDL(screen, p.x, p.y, illumination);
       screen->depthBuffer[screen->width*p.y + p.x] = p.zinv;
     }
@@ -346,13 +343,10 @@ void ComputePolygonRows(
 // TODO: use reflectance, use real camera.
 vec3 DirectLight(Camera &camera, const Pixel &p, const vec4 &normal, const vec3 &reflectance){
 
-
-    vec4 cameraPos = camera.GetCameraPos();
-    //vec4 cameraPos(0, 0, -2.5f, 1);
-    vec4 lightPos(0.f,-1.f,0.f, 1.0f);
-    lightPos -= cameraPos;
+    vec4 lightPos(0.f,-0.75f,-.75f, 1.0f);
+    lightPos -= camera.GetCameraPos();
     //TODO:remove the change of the camera's rotation
-    vec3 lightPower = 10.1f*vec3( 1, 1, 1 );
+    vec3 lightPower = 20.1f*vec3( 1, 1, 1 );
     vec3 indirectLightPowerPerArea = 0.5f*vec3(1.f, 1.f, 1.f);
 
     /* Illumination */
