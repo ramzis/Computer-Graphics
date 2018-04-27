@@ -53,3 +53,6 @@ Had loads of cool ideas and enjoyed challenges ____.
   - smoke??
 * fog/haze
 * clipping
+
+I've been writing it up here:
+https://docs.google.com/document/d/1wPUoIjF4pc38AhHJEl8x9_wyUPVmGp7ky_D356NuG00/edit#
