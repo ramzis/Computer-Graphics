@@ -3,10 +3,12 @@
 
 #include <iostream>
 #include <glm/glm.hpp>
+#include "glm/gtc/matrix_transform.hpp"
 #include <SDL.h>
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
 #include "Camera.h"
+#include "LightSource.h"
 #include <stdint.h>
 #include <stdexcept>
 #include <stdlib.h>
@@ -124,9 +126,9 @@ struct Edge {
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
-void Update(Camera &camera);
+void Update(Camera &camera, LightSource &light);
 void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime);
-void Draw(screen* screen, Camera &camera, std::vector<Triangle>& triangles);
+void Draw(screen* screen, Camera &camera, std::vector<Triangle>& triangles, LightSource &light);
 void VertexShader( const vec4& v, ivec2& p );
 void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result);
 void DrawLineSDL( screen* surface, ivec2 a, ivec2 b, vec3 colour);//should we define this in our SLD Auxilarry file
@@ -136,12 +138,14 @@ void ComputePolygonRows(const vector<ivec2>& vertexPixels, vector<ivec2>& leftPi
 void DrawPolygonRows(screen* screen, const vector<ivec2>& leftPixels, const vector<ivec2>& rightPixels, vec3 colour);
 // Depth buffer versions
 void Interpolate(Pixel a, Pixel b, vector<Pixel>& result);
-void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t);
+void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSource &light);
 void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels);
-void VertexShader(Camera &camera, const Vertex& v, Pixel& p );
-void PixelShader(screen* screen, Camera &camera, const Pixel& p, const vec4 &normal, const vec3 &colour, const vec3 &reflectance);
-void DrawLineSDL(screen* screen, Camera &camera, Pixel& a, Pixel& b, const vec4 &normal, const vec3 &colour, const vec3 &reflectance);
-vec3 DirectLight(Camera &camera, const Pixel &p, const vec4 &normal, const vec3 &reflectance);
+void VertexShader(Camera &camera, LightSource &light, const Vertex& v, Pixel& p );
+void PixelShader(screen* screen, Camera &camera, LightSource &light, const Pixel& p, const vec4 &normal, const vec3 &colour, const vec3 &reflectance);
+void DrawLineSDL(screen* screen, Camera &camera, LightSource &light, Pixel& a, Pixel& b, const vec4 &normal, const vec3 &colour, const vec3 &reflectance, bool depthOnly);
+vec3 DirectLight(Camera &camera, LightSource &light, const Pixel &p, const vec4 &normal, const vec3 &reflectance);
+// Shader depth only
+void VertexShaderLight(Camera &camera, LightSource &light, const Vertex& v, Pixel& p);
 // These are for attempting OpenMP parallel buffers...
 void BufferPolygonEdges(uint32_t* buff, const vector<vec4>& vertices);
 void DrawLineBuffer(uint32_t* buff, ivec2 a, ivec2 b, vec3 colour);
