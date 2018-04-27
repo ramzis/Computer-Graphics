@@ -38,8 +38,7 @@ int main( int argc, char* argv[] )
     screen->height/2.0,
     0,
     c2w);
-  camera.showDepthBuffer = false;
-
+  camera.orthView = false;
   /* Light source init */
   /* Position in world coordinates */
   vec4 lightPos = vec4(0.5f,0.5f,1.f, 1);
@@ -171,7 +170,7 @@ void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime) {
   /* Update rotation */
   camera.SetCameraRot(cameraRotate);
 
-  //TODO: add camera colour modes
+  /* Update Camear modes state */
   if(keystate[SDL_SCANCODE_1]) {
     camera.colorMode = 0;
   }
@@ -183,9 +182,12 @@ void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime) {
   }
   if(keystate[SDL_SCANCODE_4]) {
     camera.colorMode = 3;
-    //camera.showDepthBuffer = !camera.showDepthBuffer;
-
   }
+  if(keystate[SDL_SCANCODE_5]) {
+    //Toggles whether to render in orthographic view or not
+    camera.orthView = !camera.orthView;
+  }
+
 
 }
 
@@ -215,18 +217,20 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSo
 
   /* Transform each 3D Vertex to a 2D Pixel */
   vector<Pixel> vertexPixels(3);
-  { 
-    VertexShaderLight(camera, light, Vertex(t.v0), vertexPixels[0]);
-    VertexShaderLight(camera, light, Vertex(t.v1), vertexPixels[1]);
-    VertexShaderLight(camera, light, Vertex(t.v2), vertexPixels[2]);
-  }
-  // {
-  //   VertexShader(camera, light, Vertex(t.v0), vertexPixels[0]);
-  //   VertexShader(camera, light, Vertex(t.v1), vertexPixels[1]);
-  //   VertexShader(camera, light, Vertex(t.v2), vertexPixels[2]);
-  // }
-
-  /* Find the rows that make up the polygon */
+  
+  if (camera.orthView){
+      //Orthographic View
+      VertexShaderLight(camera, light, Vertex(t.v0), vertexPixels[0]);
+      VertexShaderLight(camera, light, Vertex(t.v1), vertexPixels[1]);
+      VertexShaderLight(camera, light, Vertex(t.v2), vertexPixels[2]);
+    } else{
+      //Normal View
+     VertexShader(camera, light, Vertex(t.v0), vertexPixels[0]);
+     VertexShader(camera, light, Vertex(t.v1), vertexPixels[1]);
+     VertexShader(camera, light, Vertex(t.v2), vertexPixels[2]);
+   }
+   
+   /* Find the rows that make up the polygon */
   vector<Pixel> leftPixels, rightPixels;
   ComputePolygonRows(vertexPixels, leftPixels, rightPixels);
   
@@ -255,6 +259,7 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSo
     case 3:{
       showDepthBuffer = true;
     }
+    break;
     default:
       color = t.color;
       break;

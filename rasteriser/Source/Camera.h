@@ -21,8 +21,8 @@ public:
   float f;
   /* Color mode */
   int colorMode;
-  /* Switch for showing depth buffer */
-  bool showDepthBuffer;
+  /* Display orthographic view */
+  bool orthView;
 
   Camera(glm::vec4 pos, float f, int colorMode, glm::mat4 c2w)
   : c2w(c2w), f(f), colorMode(colorMode)
