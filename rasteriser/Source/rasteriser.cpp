@@ -41,7 +41,7 @@ int main( int argc, char* argv[] )
 
   /* Light source init */
   /* Position in world coordinates */
-  vec4 lightPos = vec4(0.5f,0.5f,1.f, 1);
+  vec4 lightPos = vec4(0.5f,0.5f,1.5f, 1);
   /* Light colour */
   vec3 lightColour = vec3(1, 1, 1);
   /* Light intensity */
@@ -189,9 +189,13 @@ void Draw(screen* screen, Camera &camera, vector<Triangle>& triangles, LightSour
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
   memset(screen->depthBuffer, 0, screen->height*screen->width*sizeof(float));
+  memset(screen->shadowBuffer, 0, screen->height*screen->width*sizeof(float));
 
   for (uint32_t i=0; i < triangles.size(); ++i) {
-    DrawPolygonDepth(screen, camera, triangles[i], light);
+    DrawPolygonDepth(screen, camera, triangles[i], light, true, false);
+  }
+  for (uint32_t i=0; i < triangles.size(); ++i) {
+    DrawPolygonDepth(screen, camera, triangles[i], light, false, true);
   }
 }
 
@@ -201,20 +205,23 @@ void Draw(screen* screen, Camera &camera, vector<Triangle>& triangles, LightSour
 // Draws a 3D polygon onto the screen.
 //
 ////////////////////////////////////////////////////////////////////////////////
-void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSource &light) {
+void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t,
+  LightSource &light, bool depthOnly, bool isCamera) {
 
   /* Transform each 3D Vertex to a 2D Pixel */
   vector<Pixel> vertexPixels(3);
+  if(!isCamera)
   { 
     VertexShaderLight(camera, light, Vertex(t.v0), vertexPixels[0]);
     VertexShaderLight(camera, light, Vertex(t.v1), vertexPixels[1]);
     VertexShaderLight(camera, light, Vertex(t.v2), vertexPixels[2]);
   }
-  // {
-  //   VertexShader(camera, light, Vertex(t.v0), vertexPixels[0]);
-  //   VertexShader(camera, light, Vertex(t.v1), vertexPixels[1]);
-  //   VertexShader(camera, light, Vertex(t.v2), vertexPixels[2]);
-  // }
+  else
+  {
+    VertexShader(camera, light, Vertex(t.v0), vertexPixels[0]);
+    VertexShader(camera, light, Vertex(t.v1), vertexPixels[1]);
+    VertexShader(camera, light, Vertex(t.v2), vertexPixels[2]);
+  }
 
   /* Find the rows that make up the polygon */
   vector<Pixel> leftPixels, rightPixels;
@@ -239,7 +246,7 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSo
   /* Draw the rows that make up the polygon */
   for (uint i = 0; i < leftPixels.size(); i++)
     DrawLineSDL(screen, camera, light, leftPixels[i], rightPixels[i],
-      t.normal, color, t.reflectance, true);
+      t.normal, color, t.reflectance, depthOnly);
 }
 
 
@@ -257,15 +264,6 @@ void VertexShader(Camera &camera, LightSource &light, const Vertex& v, Pixel& p)
     0.0, 0.0, 0.5, 0.0,
     0.5, 0.5, 0.5, 1.0
     );
-
-  glm::vec3 lightInvDir = glm::vec3(light.pos);
-
-  // Compute the MVP matrix from the light's point of view
-  glm::mat4 depthProjectionMatrix = glm::ortho<float>(-2,2,-2,2,10,1);
-  glm::mat4 depthViewMatrix = glm::lookAt(lightInvDir, glm::vec3(0,0,0), glm::vec3(0,1,0));
-  glm::mat4 depthModelMatrix = glm::mat4(1.0);
-  glm::mat4 depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
-  glm::mat4 depthBiasMVP = biasMatrix*depthMVP;
 
   vec4 pos = v.pos - 2.0f * camera.GetCameraPos();
   pos = camera.c2w * pos;
@@ -299,7 +297,7 @@ void VertexShaderLight(Camera &camera, LightSource &light, const Vertex& v, Pixe
   glm::mat4 depthViewMatrix = glm::lookAt(lightInvDir, glm::vec3(0,0,0), glm::vec3(0,1,0));
   glm::mat4 depthModelMatrix = glm::mat4(1.0);
   glm::mat4 depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
-  glm::mat4 depthBiasMVP = biasMatrix*depthMVP;
+  glm::mat4 depthBiasMVP = biasMatrix * depthMVP;
 
   vec4 pos = depthBiasMVP * v.pos;
   p.zinv = 1 / (pos.z == 0 ? 0.0001f : pos.z);
@@ -315,9 +313,11 @@ void VertexShaderLight(Camera &camera, LightSource &light, const Vertex& v, Pixe
 //
 ////////////////////////////////////////////////////////////////////////////////
 void PixelShader(screen* screen, Camera &camera, LightSource &light, const Pixel& p,
-  const vec4 &normal, const vec3 &colour, const vec3 &reflectance) {
+  const vec4 &normal, const vec3 &colour, const vec3 &reflectance, const float &visibility) {
 
-  vec3 illumination = colour * DirectLight(camera, light, p, normal, reflectance);
+  float vis = (screen->shadowBuffer[screen->width*p.y + p.x]) < glm::length(light.pos - p.pos3d) ? 0.75f : 1.0f; 
+
+  vec3 illumination = colour * vis * DirectLight(camera, light, p, normal, reflectance);
 
   if(p.x < screen->width && p.x >=0 && p.y < screen->height && p.y >=0){
     if(screen->depthBuffer[screen->width*p.y + p.x] < p.zinv - 0.001f) {
@@ -341,7 +341,7 @@ void FragmentShader(screen* screen, const Pixel& p) {
       float c = (2.0f * zNear) / (zFar + zNear - depth * (zFar - zNear));
     if(p.x < screen->width && p.x >=0 && p.y < screen->height && p.y >=0){
       PutPixelSDL(screen, p.x, p.y, vec3(c, c, c));
-      screen->depthBuffer[screen->width*p.y + p.x] = p.zinv;
+      screen->shadowBuffer[screen->width*p.y + p.x] = p.zinv;
     }
   }
 }
@@ -399,7 +399,7 @@ void DrawLineSDL(screen* screen, Camera &camera, LightSource &light, Pixel& a, P
   Interpolate(a, b, line);
   for (int i = 0; i < pixels; i++){
     if(!depthOnly)
-      PixelShader(screen, camera, light, line[i], normal, colour, reflectance);
+      PixelShader(screen, camera, light, line[i], normal, colour, reflectance, 1.0f);
     else
       FragmentShader(screen, line[i]);
   }

@@ -13,7 +13,8 @@ typedef struct{
   int height;
   int width;
   uint32_t *buffer;
-  float *depthBuffer; 
+  float *depthBuffer;
+  float *shadowBuffer; 
 } screen;
 
 screen* InitializeSDL( int width, int height, bool fullscreen = false );
@@ -59,6 +60,7 @@ void KillSDL(screen* s)
 {
   delete[] s->buffer;
   delete[] s->depthBuffer;
+  delete[] s->shadowBuffer;
   SDL_DestroyTexture(s->texture);
   SDL_DestroyRenderer(s->renderer);
   SDL_DestroyWindow(s->window);
@@ -88,9 +90,11 @@ screen* InitializeSDL(int width, int height, bool fullscreen)
   s->height = height;
   s->buffer = new uint32_t[width*height];
   s->depthBuffer = new float[width*height];
+  s->shadowBuffer = new float[width*height];
   memset(s->buffer, 0, width*height*sizeof(uint32_t));
   memset(s->depthBuffer, 0, width*height*sizeof(float));
-  
+  memset(s->shadowBuffer, 0, width*height*sizeof(float));
+
   uint32_t flags = SDL_WINDOW_OPENGL;
   if(fullscreen)
     {

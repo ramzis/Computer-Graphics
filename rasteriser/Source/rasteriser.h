@@ -138,10 +138,10 @@ void ComputePolygonRows(const vector<ivec2>& vertexPixels, vector<ivec2>& leftPi
 void DrawPolygonRows(screen* screen, const vector<ivec2>& leftPixels, const vector<ivec2>& rightPixels, vec3 colour);
 // Depth buffer versions
 void Interpolate(Pixel a, Pixel b, vector<Pixel>& result);
-void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSource &light);
+void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSource &light, bool depthOnly, bool isCamera);
 void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels);
 void VertexShader(Camera &camera, LightSource &light, const Vertex& v, Pixel& p );
-void PixelShader(screen* screen, Camera &camera, LightSource &light, const Pixel& p, const vec4 &normal, const vec3 &colour, const vec3 &reflectance);
+void PixelShader(screen* screen, Camera &camera, LightSource &light, const Pixel& p, const vec4 &normal, const vec3 &colour, const vec3 &reflectance, const float &visibility);
 void DrawLineSDL(screen* screen, Camera &camera, LightSource &light, Pixel& a, Pixel& b, const vec4 &normal, const vec3 &colour, const vec3 &reflectance, bool depthOnly);
 vec3 DirectLight(Camera &camera, LightSource &light, const Pixel &p, const vec4 &normal, const vec3 &reflectance);
 // Shader depth only
