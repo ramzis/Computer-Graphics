@@ -149,6 +149,12 @@ void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime) {
   camera.SetCameraRot(cameraRotate);
 
   //TODO: add camera colour modes
+  if(keystate[SDL_SCANCODE_1]) {
+    camera.colorMode = 0;
+  }
+  if(keystate[SDL_SCANCODE_2]) {
+    camera.colorMode = 1;
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -206,6 +212,23 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSo
   /* Find the rows that make up the polygon */
   vector<Pixel> leftPixels, rightPixels;
   ComputePolygonRows(vertexPixels, leftPixels, rightPixels);
+  
+  /*Color Mode*/
+  vec3 color = t.color;
+  switch(camera.colorMode){
+    case 0:
+      //Normal Mode
+      color = t.color;
+      break;
+    case 1:
+      //invert color
+      color = 1.f - t.color;//TODO
+      break;
+    default:
+      color = t.color;
+      break;
+  }
+
   /* Draw the rows that make up the polygon */
   for (uint i = 0; i < leftPixels.size(); i++)
     DrawLineSDL(screen, camera, light, leftPixels[i], rightPixels[i],
