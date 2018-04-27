@@ -87,6 +87,28 @@ void Update(Camera &camera, LightSource &light)
 
   UpdateCamera(camera, keystate, dt);
 
+  /* Light movement */
+  float lightSpeed = 0.001 * dt;
+
+  if(keystate[SDL_SCANCODE_H]) {
+    light.pos.z -= lightSpeed;
+  }
+  if(keystate[SDL_SCANCODE_J]) {
+    light.pos.z += lightSpeed;
+  }
+  if(keystate[SDL_SCANCODE_K]) {
+    light.pos.x -= lightSpeed;
+  }
+  if(keystate[SDL_SCANCODE_L]) {
+    light.pos.x += lightSpeed;
+  }
+  if(keystate[SDL_SCANCODE_U]) {
+    light.pos.y -= lightSpeed;
+  }
+  if(keystate[SDL_SCANCODE_I]) {
+    light.pos.y += lightSpeed;
+  }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -114,10 +136,10 @@ void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime) {
   if(keystate[SDL_SCANCODE_RIGHT]) {
     cameraTranslate.x = -cameraSpeed;
   }
-  if(keystate[SDL_SCANCODE_H]) {
+  if(keystate[SDL_SCANCODE_Q]) {
     cameraTranslate.y = cameraSpeed;
   }
-  if(keystate[SDL_SCANCODE_J]) {
+  if(keystate[SDL_SCANCODE_E]) {
     cameraTranslate.y = -cameraSpeed;
   }
   /* Update position */
@@ -198,16 +220,16 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSo
 
   /* Transform each 3D Vertex to a 2D Pixel */
   vector<Pixel> vertexPixels(3);
-  { 
-    VertexShaderLight(camera, light, Vertex(t.v0), vertexPixels[0]);
-    VertexShaderLight(camera, light, Vertex(t.v1), vertexPixels[1]);
-    VertexShaderLight(camera, light, Vertex(t.v2), vertexPixels[2]);
-  }
-  // {
-  //   VertexShader(camera, light, Vertex(t.v0), vertexPixels[0]);
-  //   VertexShader(camera, light, Vertex(t.v1), vertexPixels[1]);
-  //   VertexShader(camera, light, Vertex(t.v2), vertexPixels[2]);
+  // { 
+  //   VertexShaderLight(camera, light, Vertex(t.v0), vertexPixels[0]);
+  //   VertexShaderLight(camera, light, Vertex(t.v1), vertexPixels[1]);
+  //   VertexShaderLight(camera, light, Vertex(t.v2), vertexPixels[2]);
   // }
+  {
+    VertexShader(camera, light, Vertex(t.v0), vertexPixels[0]);
+    VertexShader(camera, light, Vertex(t.v1), vertexPixels[1]);
+    VertexShader(camera, light, Vertex(t.v2), vertexPixels[2]);
+  }
 
   /* Find the rows that make up the polygon */
   vector<Pixel> leftPixels, rightPixels;
@@ -232,7 +254,7 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSo
   /* Draw the rows that make up the polygon */
   for (uint i = 0; i < leftPixels.size(); i++)
     DrawLineSDL(screen, camera, light, leftPixels[i], rightPixels[i],
-      t.normal, t.color, t.reflectance, false);
+      t.normal, color, t.reflectance, false);
 }
 
 
@@ -260,7 +282,6 @@ void VertexShader(Camera &camera, LightSource &light, const Vertex& v, Pixel& p)
   glm::mat4 depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
   glm::mat4 depthBiasMVP = biasMatrix*depthMVP;
 
-  // GOOD camera depth 
   vec4 pos = v.pos - 2.0f * camera.GetCameraPos();
   pos = camera.c2w * pos;
   p.zinv = 1 / (pos.z == 0 ? 0.0001f : pos.z);
@@ -268,11 +289,6 @@ void VertexShader(Camera &camera, LightSource &light, const Vertex& v, Pixel& p)
   p.y = int(camera.f * pos.y * p.zinv) + SCREEN_HEIGHT/2;
   p.pos3d = pos;
 
-  // vec4 pos = depthBiasMVP * v.pos;
-  // p.zinv = 1 / (pos.z == 0 ? 0.0001f : pos.z);
-  // p.x = pos.x * camera.f * 2;
-  // p.y = pos.y * camera.f * 2;
-  // p.pos3d = v.pos;
 }
 
 
@@ -469,7 +485,7 @@ void ComputePolygonRows(
 // TODO: use reflectance, use real camera.
 vec3 DirectLight(Camera &camera, LightSource &light, const Pixel &p, const vec4 &normal, const vec3 &reflectance){
 
-    vec4 lightPos(0.f, 0.f, 0.f, 1.0f);
+    vec4 lightPos = light.pos;
     lightPos -= 2.0f * camera.GetCameraPos();
     lightPos = camera.c2w * lightPos;
     //TODO:remove the change of the camera's rotation
