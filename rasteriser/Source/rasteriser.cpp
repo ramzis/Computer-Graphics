@@ -38,7 +38,6 @@ int main( int argc, char* argv[] )
     screen->height/2.0,
     0,
     c2w);
-
   /* Light source init */
   /* Position in world coordinates */
   vec4 lightPos = vec4(0.5f,0.5f,1.5f, 1);
@@ -170,13 +169,41 @@ void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime) {
   /* Update rotation */
   camera.SetCameraRot(cameraRotate);
 
-  //TODO: add camera colour modes
+  /* Update Camear modes state */
   if(keystate[SDL_SCANCODE_1]) {
     camera.colorMode = 0;
   }
   if(keystate[SDL_SCANCODE_2]) {
     camera.colorMode = 1;
   }
+  if(keystate[SDL_SCANCODE_3]) {
+    camera.colorMode = 2;
+  }
+  if(keystate[SDL_SCANCODE_4]) {
+    camera.colorMode = 3;
+  }
+  if(keystate[SDL_SCANCODE_5]) {
+    //Toggles whether to render in orthographic view or not
+    camera.orthView = !camera.orthView;
+  }
+
+  float huAdjSpeed = 0.1*deltaTime;
+  /* Adjust camera hue */ 
+  if (keystate[SDL_SCANCODE_KP_PLUS]){
+    camera.hueAdjustment = camera.hueAdjustment + huAdjSpeed;
+    if (camera.hueAdjustment >= 360.f){
+      camera.hueAdjustment = camera.hueAdjustment - 360;
+    }
+    //TODO: make this a method of camera
+  }
+  if (keystate[SDL_SCANCODE_KP_MINUS] || keystate[SDL_SCANCODE_MINUS]){
+    camera. hueAdjustment = camera.hueAdjustment - huAdjSpeed;
+    if (camera.hueAdjustment < 0.f ) {
+      camera.hueAdjustment = camera.hueAdjustment + 360;
+    }
+  }
+
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -229,6 +256,7 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t,
   
   /*Color Mode*/
   vec3 color = t.color;
+  bool showDepthBuffer = false;
   switch(camera.colorMode){
     case 0:
       //Normal Mode
@@ -238,6 +266,20 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t,
       //invert color
       color = 1.f - t.color;
       break;
+    case 2:{
+      //Funky Disco Mode
+      float r = ((double) rand() / (RAND_MAX)) + 1;
+      float g = ((double) rand() / (RAND_MAX)) + 1;
+      float b = ((double) rand() / (RAND_MAX)) + 1;
+      color = vec3(r,g,b);
+      color = cross((float)0.3*color, t.color);
+      //color += 0.2f*vec3(1,1,1);
+    }
+      break;
+    case 3:{
+      showDepthBuffer = true;
+    }
+    break;
     default:
       color = t.color;
       break;
@@ -246,7 +288,8 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t,
   /* Draw the rows that make up the polygon */
   for (uint i = 0; i < leftPixels.size(); i++)
     DrawLineSDL(screen, camera, light, leftPixels[i], rightPixels[i],
-      t.normal, color, t.reflectance, depthOnly);
+      t.normal, color, t.reflectance, depthOnly || showDepthBuffer);
+
 }
 
 

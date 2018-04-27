@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <stdlib.h>
 #include <stdio.h>
+#include "ModelImporter.h"
 
 using namespace std;
 using glm::vec3;
