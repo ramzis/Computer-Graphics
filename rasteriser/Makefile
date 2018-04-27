@@ -34,7 +34,8 @@ OBJ = $(B_DIR)/$(FILE).o
 
 ########
 # headers
-HEADERS= $(S_DIR)/SDLauxiliary.h $(S_DIR)/TestModelH.h $(S_DIR)/$(FILE).h 
+HEADERS= $(S_DIR)/SDLauxiliary.h $(S_DIR)/TestModelH.h $(S_DIR)/$(FILE).h $(S_DIR)/LightSource.h $(S_DIR)/Camera.h
+ 
 
 
 ########
