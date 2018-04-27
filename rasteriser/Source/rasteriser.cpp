@@ -193,23 +193,8 @@ void Draw(screen* screen, Camera &camera, vector<Triangle>& triangles, LightSour
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
   memset(screen->depthBuffer, 0, screen->height*screen->width*sizeof(float));
 
-  //omp_set_num_threads(4);
-  //#pragma omp parallel default(none) private(vertices) shared(buff, triangles)
-  //#pragma omp parallel for
   for (uint32_t i=0; i < triangles.size(); ++i) {
-
-    // Not implemented
-    //BufferPolygonEdges(buff, vertices);
-    // No depth old
-    //DrawPolygon(screen, vertices, triangles[i].color);
-    // New with depth
     DrawPolygonDepth(screen, camera, triangles[i], light);
-    // Optionally show edges
-    // std::vector<vec4> vertices;
-    // vertices.push_back(triangles[i].v0);
-    // vertices.push_back(triangles[i].v1);
-    // vertices.push_back(triangles[i].v2);
-    // DrawPolygonEdges(screen, vertices);
   }
 }
 
@@ -223,16 +208,16 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSo
 
   /* Transform each 3D Vertex to a 2D Pixel */
   vector<Pixel> vertexPixels(3);
-  // { 
-  //   VertexShaderLight(camera, light, Vertex(t.v0), vertexPixels[0]);
-  //   VertexShaderLight(camera, light, Vertex(t.v1), vertexPixels[1]);
-  //   VertexShaderLight(camera, light, Vertex(t.v2), vertexPixels[2]);
-  // }
-  {
-    VertexShader(camera, light, Vertex(t.v0), vertexPixels[0]);
-    VertexShader(camera, light, Vertex(t.v1), vertexPixels[1]);
-    VertexShader(camera, light, Vertex(t.v2), vertexPixels[2]);
+  { 
+    VertexShaderLight(camera, light, Vertex(t.v0), vertexPixels[0]);
+    VertexShaderLight(camera, light, Vertex(t.v1), vertexPixels[1]);
+    VertexShaderLight(camera, light, Vertex(t.v2), vertexPixels[2]);
   }
+  // {
+  //   VertexShader(camera, light, Vertex(t.v0), vertexPixels[0]);
+  //   VertexShader(camera, light, Vertex(t.v1), vertexPixels[1]);
+  //   VertexShader(camera, light, Vertex(t.v2), vertexPixels[2]);
+  // }
 
   /* Find the rows that make up the polygon */
   vector<Pixel> leftPixels, rightPixels;
@@ -246,8 +231,8 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSo
       color = t.color;
       break;
     case 1:
-      //Invert Color Mode
-      color = 1.f - t.color;//TODO
+      //invert color
+      color = 1.f - t.color;
       break;
     case 2:{
       //Funky Disco Mode
@@ -267,7 +252,7 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSo
   /* Draw the rows that make up the polygon */
   for (uint i = 0; i < leftPixels.size(); i++)
     DrawLineSDL(screen, camera, light, leftPixels[i], rightPixels[i],
-      t.normal, color, t.reflectance, false);
+      t.normal, color, t.reflectance, true);
 }
 
 
@@ -320,7 +305,7 @@ void VertexShaderLight(Camera &camera, LightSource &light, const Vertex& v, Pixe
     0.5, 0.5, 0.5, 1.0
     );
 
-  glm::vec3 lightInvDir = glm::vec3(0.5f,0.5f,1.f);
+  glm::vec3 lightInvDir = glm::vec3(light.pos);
 
   // Compute the MVP matrix from the light's point of view
   glm::mat4 depthProjectionMatrix = glm::ortho<float>(-2,2,-2,2,10,1);
