@@ -38,7 +38,6 @@ int main( int argc, char* argv[] )
     screen->height/2.0,
     0,
     c2w);
-  camera.orthView = false;
   /* Light source init */
   /* Position in world coordinates */
   vec4 lightPos = vec4(0.5f,0.5f,1.f, 1);
@@ -186,6 +185,22 @@ void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime) {
   if(keystate[SDL_SCANCODE_5]) {
     //Toggles whether to render in orthographic view or not
     camera.orthView = !camera.orthView;
+  }
+
+  float huAdjSpeed = 0.1*deltaTime;
+  /* Adjust camera hue */ 
+  if (keystate[SDL_SCANCODE_KP_PLUS]){
+    camera.hueAdjustment = camera.hueAdjustment + huAdjSpeed;
+    if (camera.hueAdjustment >= 360.f){
+      camera.hueAdjustment = camera.hueAdjustment - 360;
+    }
+    //TODO: make this a method of camera
+  }
+  if (keystate[SDL_SCANCODE_KP_MINUS] || keystate[SDL_SCANCODE_MINUS]){
+    camera. hueAdjustment = camera.hueAdjustment - huAdjSpeed;
+    if (camera.hueAdjustment < 0.f ) {
+      camera.hueAdjustment = camera.hueAdjustment + 360;
+    }
   }
 
 

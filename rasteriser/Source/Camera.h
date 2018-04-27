@@ -23,11 +23,15 @@ public:
   int colorMode;
   /* Display orthographic view */
   bool orthView;
+  /**/
+  int hueAdjustment;
 
   Camera(glm::vec4 pos, float f, int colorMode, glm::mat4 c2w)
   : c2w(c2w), f(f), colorMode(colorMode)
   {
     SetCameraPos(pos);
+    orthView = false;
+    hueAdjustment = 0;
   }
 
   void SetCameraPos(glm::vec4 pos) {
