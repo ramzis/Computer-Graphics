@@ -139,6 +139,9 @@ void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime) {
   if(keystate[SDL_SCANCODE_2]) {
     camera.colorMode = 1;
   }
+  if(keystate[SDL_SCANCODE_3]) {
+    camera.colorMode = 2;
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -194,8 +197,18 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t) {
       color = t.color;
       break;
     case 1:
-      //invert color
+      //Invert Color Mode
       color = 1.f - t.color;//TODO
+      break;
+    case 2:{
+      //Funky Disco Mode
+      float r = ((double) rand() / (RAND_MAX)) + 1;
+      float g = ((double) rand() / (RAND_MAX)) + 1;
+      float b = ((double) rand() / (RAND_MAX)) + 1;
+      color = vec3(r,g,b);
+      color = cross((float)0.3*color, t.color);
+      //color += 0.2f*vec3(1,1,1);
+    }
       break;
     default:
       color = t.color;
