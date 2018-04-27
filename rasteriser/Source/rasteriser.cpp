@@ -38,6 +38,7 @@ int main( int argc, char* argv[] )
     screen->height/2.0,
     0,
     c2w);
+  camera.showDepthBuffer = false;
 
   /* Light source init */
   /* Position in world coordinates */
@@ -180,6 +181,12 @@ void UpdateCamera(Camera &camera, const Uint8* keystate, float deltaTime) {
   if(keystate[SDL_SCANCODE_3]) {
     camera.colorMode = 2;
   }
+  if(keystate[SDL_SCANCODE_4]) {
+    camera.colorMode = 3;
+    //camera.showDepthBuffer = !camera.showDepthBuffer;
+
+  }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -225,6 +232,7 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSo
   
   /*Color Mode*/
   vec3 color = t.color;
+  bool showDepthBuffer = false;
   switch(camera.colorMode){
     case 0:
       //Normal Mode
@@ -244,6 +252,9 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSo
       //color += 0.2f*vec3(1,1,1);
     }
       break;
+    case 3:{
+      showDepthBuffer = true;
+    }
     default:
       color = t.color;
       break;
@@ -252,7 +263,7 @@ void DrawPolygonDepth(screen* screen, Camera &camera, const Triangle &t, LightSo
   /* Draw the rows that make up the polygon */
   for (uint i = 0; i < leftPixels.size(); i++)
     DrawLineSDL(screen, camera, light, leftPixels[i], rightPixels[i],
-      t.normal, color, t.reflectance, true);
+      t.normal, color, t.reflectance, showDepthBuffer);
 }
 
 
